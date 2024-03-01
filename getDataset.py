@@ -7,7 +7,7 @@ import numpy as np
 from IPython.display import clear_output
 
 #Import of self created python script
-sys.path.insert(1, 'AVATAR/code/mphilipp/')
+sys.path.insert(1, 'C:\Users\49152\Desktop\MA\Code')
 import settings
 from tools import test_edf_corrupted_info, get_date_edf
 
