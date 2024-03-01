@@ -1,15 +1,15 @@
 #%% Imports
-import sys
+import sys                                                                       
 import os
-os.environ['MNE_USE_NUMBA'] = 'false'
+os.environ['MNE_USE_NUMBA'] = 'false'                                            #避免使用numba speedup
 import mne
 import numpy as np
 from IPython.display import clear_output
 
 #Import of self created python script
-sys.path.insert(1, 'C:\Users\49152\Desktop\MA\Code')
+sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')                              # 允许脚本导入一个特定路径下的自定义Python脚本，例如settings模块和tools模块里的函数。
 import settings
-from tools import test_edf_corrupted_info, get_date_edf
+from tools import test_edf_corrupted_info, get_date_edf                           ## (edf_corrupted, edf_info) false没坏，edf_metadata; edf measurment date yyyy-mm-dd
 
 
 #setup Frameworks
@@ -17,48 +17,53 @@ mne.set_log_level('WARNING')
 
 #%% Definitions
 
-def get_patients(path):
+def get_patients(path):                                                                    ## 遍历所有文件寻找. edf文件，并转化为dictionary
     patients = {} #key: patient_id ; value: list [tuple (date_of_the_take, sesssion_id+take_id, path_to_edf, meta_file), (), ()]   
     
     
-    #walk through all files and get all edf files in the given directory
-    #these paths are added to the patients dict with (and metadata dict if needed)
-    
+    #walk through all files and get all edf files in the given directory                   os.walk 遍历目录树 三元组（dirpath, dirnames, filenames） 
+    #these paths are added to the patients dict with (and metadata dict if needed)         dirpath是一个字符串，表示当前正在遍历的目录的路径；
+    # dirpath    是一个string 字符串，表示当前正在遍历的目录的路径；
+    # dirnames   是一个list   列表，包含dirpath下所有子目录的名字。注意，这个列表不会包含子目录下进一步的子目录的名字。                                                                                
+    # filenames  是一个list   列表，包含dirpath下所有非目录文件的名字。就是文件名
+
+
     import_progress = 0  #initializing the progress displaying
-    
     
     for dirpath, dirnames, filenames in os.walk(path):
         #walk recursive from a certain path to find all files
         
-        for filename in [f for f in filenames if f.endswith(".edf")]: #filter the files to the ones ending with edf
+        for filename in [f for f in filenames if f.endswith(".edf")]: #filter the files to the ones ending with edf   筛选文件 .edf  f=有几个文件 00000000_aaaaaaaa_s001_t000.edf
             #get all information from the file name
-            patient_id = filename[0:8]
-            session_id = filename[10:13]
-            take_id = filename[15:18]
-            path_to_edf = os.path.join(dirpath, filename)
-            
+            patient_id = filename[9:17]                                                  # aaaaaaaa 病人ID
+            session_id = filename[19:22]                                                 # s001 病人会话次数
+            take_id = filename[24:27]                                                    # t000 第一个转换而来的token
+            path_to_edf = os.path.join(dirpath, filename)                                # os.path.join 合并路径和文件名= 文件完整路径
+            print(path_to_edf)
+            #print(import_progress)
             import_progress += 1
-            if import_progress%700==0:   #this loop displays the progress
-                clear_output(wait=True)
+            if import_progress%700==0:   #this loop displays the progress  循环显示进度  除以700余0==每700次给用户汇报一次进度
+                clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
                 
-            corrupted, edf_info = test_edf_corrupted_info(path_to_edf)
+            corrupted, edf_info = test_edf_corrupted_info(path_to_edf)                    # false, metadata
             if not corrupted:
-                if patient_id in patients:
+                if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
                     patients[patient_id].append((str(edf_info['meas_date'])[0:10], 's_' + session_id + '_t_' + take_id, path_to_edf, edf_info))
-                else:
+                else:                                                    # 新病人 ，新建病例
                     patients[patient_id] = [(str(edf_info['meas_date'])[0:10], 's_' + session_id + '_t_' + take_id, path_to_edf, edf_info)]
+            
     total_numbers_dataset(patients)        
 
     return patients
 
-def total_numbers_dataset(patients):
+def total_numbers_dataset(patients):                   # 打印出关于这个数据集patients[]的一些统计信息:病人，token；sessions
     #print information about dataset
-    print('Number of patients:', len(patients.keys()))
+    print('Number of patients:', len(patients.keys()))   #病人数
     eeg_total = 0
     sessions_total = 0
     
-    for patient_id in patients.keys():
+    for patient_id in patients.keys():                 # 一共会诊几次;
         sessions = []
         for (session_id, _ , _, _) in patients[patient_id]:
             if session_id not in sessions:
@@ -238,3 +243,5 @@ def convert_to_pandas_dataframe(dataset_dict):
 
 
 
+
+# %%
