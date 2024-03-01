@@ -63,14 +63,14 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     eeg_total = 0
     sessions_total = 0
     
-    for patient_id in patients.keys():                 # 一共会诊几次;
+    for patient_id in patients.keys():                           #先通过ID找病人
         sessions = []
-        for (session_id, _ , _, _) in patients[patient_id]:
+        for (session_id, _ , _, _) in patients[patient_id]:      #通过会诊ID
             if session_id not in sessions:
-                sessions.append(session_id)
+                sessions.append(session_id)                      #session_id 建立的list
             
         
-        sessions_total += len(sessions)
+        sessions_total += len(sessions)                           # 一共会诊几次;
         eeg_total += len(patients[patient_id])
     
     print('Number of EEGs', eeg_total)
@@ -78,14 +78,14 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     
     return(len(patients.keys()),eeg_total, sessions_total)
  
-def rand_bool(probability_true):  #probability values is an float in [0.0, 1.0)
-    n = np.random.random()
-    if n <= probability_true:
-        return True
+def rand_bool(probability_true):                   #probability values is an float in [0.0, 1.0)  表示返回True的概率 
+    n = np.random.random()                                  #通过调整probability_true来控制返回True的概率
+    if n <= probability_true:                               #n小于或等于probability_true，则函数返回True
+        return True                     
     else:
-        return False
+        return False                  ##这个函数可以在需要根据某个概率来决定事件是否发生的情况下使用，例如模拟实验结果、决策树分支等。
     
-def seperate_session_patient(patient, session_id):
+def seperate_session_patient(patient, session_id):   
     patient_session = []
     patient_without_session = []
     
