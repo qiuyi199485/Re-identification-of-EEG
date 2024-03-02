@@ -2,7 +2,7 @@ import os
 os.environ['MNE_USE_NUMBA'] = 'false'
 import mne
 import pandas as pd
-
+import numpy as np
 ##mne settings
 mne.set_log_level('WARNING')
 

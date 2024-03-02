@@ -5,6 +5,7 @@ os.environ['MNE_USE_NUMBA'] = 'false'                                           
 import mne
 import numpy as np
 from IPython.display import clear_output
+import pandas as pd
 
 #Import of self created python script
 sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')                              # 允许脚本导入一个特定路径下的自定义Python脚本，例如settings模块和tools模块里的函数。
