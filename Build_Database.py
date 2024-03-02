@@ -111,25 +111,13 @@ def split_train_val_test(dataset_dict):                                         
     train_dataset = {}                                                            
     validation_dataset = {}
     test_dataset = {} 
- 
+    S_1_T_1=0
+    S_1_T_n=0
     patients = dataset_dict.keys()                                                ## 读取Patients[]dic： patients="aaaaaaac" ；  dataset_dict.keys()=所有’aaaaaaax‘  
     for pat in patients:
-        # deal with patients with 1 session and 1 take in this session            
+        # 1. deal :filter out the patients with 1 session and 1 take in this session            
         if len(dataset_dict[pat]) == 1:                                           ## 选出只有一段session 一段 token 的病人PAT "aaaaaaxx"
-            #probability of 80% to get seletced for train dataset
-            train_bool = rand_bool(0.8)                                           ## 设定80%的几率加入训练集
-            if train_bool:
-                train_dataset[pat] = dataset_dict[pat]
-                # logging.info(f'Patient {pat} assigned to Training Dataset with 80% probability.')
-            else:
-                validation_bool = rand_bool(0.5)                                  ## 设定 20%的病人.edf 10%为验证集 10%为测试集
-                if validation_bool:
-                    validation_dataset[pat] = dataset_dict[pat]
-                    #logging.info(f'Patient {pat} assigned to Validation Dataset.')
-                else:
-                    test_dataset[pat] = dataset_dict[pat]
-                    #logging.info(f'Patient {pat} assigned to Test Dataset.')
-        #1. deal with patients with more than 1 take                                  ## 多于1 token的病人，可能有两个或多个
+           S_1_T_1+=1         
         else:
             # get all sessions from this patient, and a second list with all the takes in this session  
             sessions = []  # list with session ids                                 ## "PAT"这个病人的所有 session id like S001 S002 S003
@@ -145,7 +133,8 @@ def split_train_val_test(dataset_dict):                                         
                     
             #2. deal with patients with 1 session
             if len(sessions) == 1:                                                  ## 病人'PAT_a'只有一个Session 
-                # choose 10% of this patients as test/Validation
+                S_1_T_n+=1
+                '''# choose 10% of this patients as test/Validation
                 train_bool = rand_bool(0.9)                                         ## 分配 90%到训练集 ； 
                 if train_bool:
                     train_bool = rand_bool(0.4)                                     ## 40% 这90%的直接进训练集
@@ -174,13 +163,13 @@ def split_train_val_test(dataset_dict):                                         
                         
                         train_dataset[pat] = train_takes
                         
-                # --> the 10% get added to validation/test                              ## 剩余一开始10%没被选上训练集的 50/50 V or Test
+                # --> the 10% get added to validation/test                             ## 剩余一开始10%没被选上训练集的 50/50 V or Test
                 else:
                     validation_bool = rand_bool(0.5)
                     if validation_bool:
                         validation_dataset[pat] = dataset_dict[pat]
                     else:
-                        test_dataset[pat] = dataset_dict[pat]
+                        test_dataset[pat] = dataset_dict[pat]'''
                         
             #3. deal with patients with more than 1 sessions
             else:
@@ -232,8 +221,12 @@ def split_train_val_test(dataset_dict):                                         
                               
                     else:
                         train_dataset[pat] = dataset_dict[pat]
+        
+    print('S_1_T_1=',S_1_T_1)
+    print('S_1_T_n=',S_1_T_n)
                 
     return (train_dataset, validation_dataset, test_dataset)
+
 
 def convert_to_pandas_dataframe(dataset_dict):
     convert_list = []
@@ -265,6 +258,8 @@ train_dataset, validation_dataset, test_dataset=split_train_val_test(patients_da
 #print(patient_session)
 #print(patient_without_session)
 #print(patients_dataset)
+
+
 
 def export_dataset_to_txt(dataset, filename):
     with open(filename, 'w', encoding='utf-8') as file:
