@@ -12,6 +12,10 @@ import settings
 from tools import test_edf_corrupted_info, get_date_edf                           ## (edf_corrupted, edf_info) false没坏，edf_metadata; edf measurment date yyyy-mm-dd
 
 
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
 #setup Frameworks
 mne.set_log_level('WARNING')
 
@@ -48,11 +52,11 @@ def get_patients(path):                                                         
             corrupted, edf_info = test_edf_corrupted_info(path_to_edf)                    # false, metadata
             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    patients[patient_id].append((str(edf_info['meas_date'])[0:10], 's_' + session_id + '_t_' + take_id, path_to_edf, edf_info))
+                    patients[patient_id].append((str(edf_info['meas_date'])[0:10], 's_' + session_id , 't_' + take_id, path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
-                    patients[patient_id] = [(str(edf_info['meas_date'])[0:10], 's_' + session_id + '_t_' + take_id, path_to_edf, edf_info)]
+                    patients[patient_id] = [(str(edf_info['meas_date'])[0:10], 's_' + session_id , 't_' + take_id, path_to_edf, edf_info)]
             
-    #total_numbers_dataset(patients)        
+    total_numbers_dataset(patients)        
 
     return patients
 
@@ -64,7 +68,7 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     #b=0
     for patient_id in patients.keys():                 # 一共会诊几次     patient_id='aaaaaaxx'
         sessions = []
-        for (session_id, _ , _, _) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
+        for (_,session_id, _ , _, _) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
             if session_id not in sessions:
                 sessions.append(session_id)
                 #print(sessions)
@@ -78,19 +82,6 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     return(len(patients.keys()),eeg_total, sessions_total)
 
 
-"""def seperate_session_patient(patient, session_id):             #通会诊次数将原来的病人dic分为两部分  s_002_t_000 有就是参加过两次session
-    patient_session = []
-    patient_without_session = []
-    b=0
-    for take in patient:                                       # take=病人[]  每条 .edf分类
-        _, session_id_take, _, _ = take
-        if session_id_take == session_id:
-            patient_session.append(take)
-        else:
-            patient_without_session.append(take)
-    #if len(patient) != len(patient_session) + len(patient_without_session):
-    #    print('Error while sperating sessions')
-    return patient_session, patient_without_session"""
 
 def rand_bool(probability_true):                   #probability values is an float in [0.0, 1.0)  表示返回True的概率 
     n = np.random.random()                                  #通过调整probability_true来控制返回True的概率
@@ -103,13 +94,13 @@ def rand_bool(probability_true):                   #probability values is an flo
 def seperate_session_patient(patient, session_id):             #通过日期2002-01-01为基准 将原来的病人dic分为两部分  这里的patient就是''aaaaaaax','这个人病人的所有data,Session,take等
     patient_session = []
     patient_without_session = []
-    b=0
-    for take in patient:                                       # take=病人[]  每条 .edf分类
-        session_id_take,_, _, _ = take
+    
+    for ses_id in patient:                                       # s001-00X 
+        _,session_id_take,_, _, _ = ses_id
         if session_id_take == session_id:
-            patient_session.append(take)
+            patient_session.append(ses_id)
         else:
-            patient_without_session.append(take)
+            patient_without_session.append(ses_id)
     #if len(patient) != len(patient_session) + len(patient_without_session):
     #    print('Error while sperating sessions')
     return patient_session, patient_without_session 
@@ -120,7 +111,7 @@ def split_train_val_test(dataset_dict):                                         
     train_dataset = {}                                                            
     validation_dataset = {}
     test_dataset = {} 
-    
+ 
     patients = dataset_dict.keys()                                                ## 读取Patients[]dic： patients="aaaaaaac" ；  dataset_dict.keys()=所有’aaaaaaax‘  
     for pat in patients:
         # deal with patients with 1 session and 1 take in this session            
@@ -129,27 +120,30 @@ def split_train_val_test(dataset_dict):                                         
             train_bool = rand_bool(0.8)                                           ## 设定80%的几率加入训练集
             if train_bool:
                 train_dataset[pat] = dataset_dict[pat]
+                # logging.info(f'Patient {pat} assigned to Training Dataset with 80% probability.')
             else:
                 validation_bool = rand_bool(0.5)                                  ## 设定 20%的病人.edf 10%为验证集 10%为测试集
                 if validation_bool:
                     validation_dataset[pat] = dataset_dict[pat]
+                    #logging.info(f'Patient {pat} assigned to Validation Dataset.')
                 else:
                     test_dataset[pat] = dataset_dict[pat]
-        #deal with patients with more than 1 take                                  ## 多于1 token的病人，可能有两个或多个
+                    #logging.info(f'Patient {pat} assigned to Test Dataset.')
+        #1. deal with patients with more than 1 take                                  ## 多于1 token的病人，可能有两个或多个
         else:
             # get all sessions from this patient, and a second list with all the takes in this session  
             sessions = []  # list with session ids                                 ## "PAT"这个病人的所有 session id like S001 S002 S003
             sessions_takes = [] # list with same order as sessions, at index of an session id there is an list with all takes in this session  类似矩阵 列是2002-02-02等 行是s_001_t_000,s_001_t_001,...
-            for edf in dataset_dict[pat]:
-                ses_id, take_id, _, _ = edf                                        ## ses_id 是日期 2002-01-01 ,take_id是's_001_t_000'等，也就是确定这两个值，去寻找这个条件下的 所有.edf 
-                if ses_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
-                    sessions.append(ses_id)                                        
-                    sessions_takes.append([take_id])                               
+            for Pat_X in dataset_dict[pat]:
+                _,s_id, token_id, _, _ = Pat_X                  # 读取这两个值 s_id 是S_00X ,token_id是't_00X'等
+                if s_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
+                    sessions.append(s_id)                                        
+                    sessions_takes.append([token_id])                               
                 else:                                                              ## S001下还有 t002,t003...找到S001的index位置，插入take的id
-                    session_index = sessions.index(ses_id)
-                    sessions_takes[session_index].append(take_id)   
+                    session_index = sessions.index(s_id)
+                    sessions_takes[session_index].append(token_id)   
                     
-            # deal with patients with 1 session
+            #2. deal with patients with 1 session
             if len(sessions) == 1:                                                  ## 病人'PAT_a'只有一个Session 
                 # choose 10% of this patients as test/Validation
                 train_bool = rand_bool(0.9)                                         ## 分配 90%到训练集 ； 
@@ -160,8 +154,8 @@ def split_train_val_test(dataset_dict):                                         
                         train_dataset[pat] = dataset_dict[pat]
                     
                     else:  #choose the take and add to test/validation
-                        number_takes = len(sessions_takes[0])                        ## 这个病人唯一的Session有几个Token 
-                        val_test_take = np.random.randint(0, number_takes)  #random int between 0 (inclusive) and number of all takes (exclusive) --> we get the indexes of the take list 随机选一个token的index
+                        number_tokens = len(sessions_takes[0])                        ## 这个病人唯一的Session有几个Token 
+                        val_test_take = np.random.randint(0, number_tokens)  #random int between 0 (inclusive) and number of all takes (exclusive) --> we get the indexes of the take list 随机选一个token的index
                         # now we add this take to test/validation (50/50)
                         # --> this patients are used for in session accuracy
                         val_test = [dataset_dict[pat][val_test_take]]
@@ -188,7 +182,7 @@ def split_train_val_test(dataset_dict):                                         
                     else:
                         test_dataset[pat] = dataset_dict[pat]
                         
-            #deal with patients with more than 1 sessions
+            #3. deal with patients with more than 1 sessions
             else:
                 number_sessions = len(sessions) #number of sessions from an patient          ## 这个PAT_X具体有几个 Session n=？
                 #with a probability of 10% chose 1 session(with all takes) from this patient    10%
@@ -272,15 +266,13 @@ train_dataset, validation_dataset, test_dataset=split_train_val_test(patients_da
 #print(patient_without_session)
 #print(patients_dataset)
 
-import os
-
 def export_dataset_to_txt(dataset, filename):
     with open(filename, 'w', encoding='utf-8') as file:
         for key, values in dataset.items():
             file.write(f"Patient ID: {key}\n")
             for value in values:
                 file.write(f"{value}\n")
-            file.write("\n")  # Add a newline for readability
+            file.write("\n")                              # 换行
 
 # 定义文件路径
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
