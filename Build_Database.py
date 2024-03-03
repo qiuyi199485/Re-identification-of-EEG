@@ -95,12 +95,12 @@ def seperate_session_patient(patient, session_id):             #通过S_00X_2002
     patient_session = []
     patient_without_session = []
     
-    for ses_id in patient:                                       # s_001_2022-02-01
-        session_id_data,_, _, _ = ses_id
+    for P_X in patient:                                       # s_001_2022-02-01
+        session_id_data,_, _, _ = P_X
         if session_id_data == session_id:
-            patient_session.append(ses_id)
+            patient_session.append(P_X)
         else:
-            patient_without_session.append(ses_id)
+            patient_without_session.append(P_X)
     #if len(patient) != len(patient_session) + len(patient_without_session):
     #    print('Error while sperating sessions')
     return patient_session, patient_without_session 
