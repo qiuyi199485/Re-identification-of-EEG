@@ -49,12 +49,12 @@ def get_patients(path):                                                         
                 clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
                 
-            corrupted, edf_info = test_edf_corrupted_info(path_to_edf)                    # false, metadata
+            corrupted, edf_info, edf_time = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    patients[patient_id].append(('s_' + session_id+'_'+str(edf_info['meas_date'])[0:10], 't_' + take_id, path_to_edf, edf_info))
+                    patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
-                    patients[patient_id] = [('s_' + session_id+'_'+str(edf_info['meas_date'])[0:10], 't_' + take_id, path_to_edf, edf_info)]
+                    patients[patient_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info)]
             
     total_numbers_dataset(patients)        
 
@@ -68,7 +68,7 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     #b=0
     for patient_id in patients.keys():                 # 一共会诊几次     patient_id='aaaaaaxx'
         sessions = []
-        for (session_id, _ , _, _) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
+        for (session_id, _ ,_, _, _, _ ) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
             if session_id not in sessions:
                 sessions.append(session_id)
                 #print(sessions)
@@ -81,8 +81,6 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
    
     return(len(patients.keys()),eeg_total, sessions_total)
 
-
-
 def rand_bool(probability_true):                   #probability values is an float in [0.0, 1.0)  表示返回True的概率 
     n = np.random.random()                                  #通过调整probability_true来控制返回True的概率
     if n <= probability_true:                               #n小于或等于probability_true，则函数返回True
@@ -90,14 +88,13 @@ def rand_bool(probability_true):                   #probability values is an flo
     else:
         return False                  ##这个函数可以在需要根据某个概率来决定事件是否发生的情况下使用，例如模拟实验结果、决策树分支等。
 
-
 def seperate_session_patient(patient, session_id):             #通过S_00X_2002-01-01为基准 将原来的病人dic分为两部分  这里的patient就是''aaaaaaax','这个人病人的所有data,Session,take等
     patient_session = []
     patient_without_session = []
     
-    for P_X in patient:                                       # s_001_2022-02-01
-        session_id_data,_, _, _ = P_X
-        if session_id_data == session_id:
+    for P_X in patient:                                       # s_001
+        session_id_1 , _ ,_ , _, _, _ = P_X
+        if session_id_1 == session_id:
             patient_session.append(P_X)
         else:
             patient_without_session.append(P_X)
@@ -105,158 +102,113 @@ def seperate_session_patient(patient, session_id):             #通过S_00X_2002
     #    print('Error while sperating sessions')
     return patient_session, patient_without_session 
 
-def split_train_val_test(dataset_dict):                                           ## Patients[] --> 训练集（train_dataset）、验证集（validation_dataset）和测试集（test_dataset）
-    
-    #splited datasets created                                                     ## 初始化
-    train_dataset = {}                                                            
-    validation_dataset = {}
-    test_dataset = {} 
-    S_1_T_1 = 0
+def get_dataset(patient_dic):
+    # filter datasets based on user-defined configurations; 
+    # configurations: 1. patients have at least 2 sessions; 2. edf times at least 10mins~ 600sec
+    S_1_T_1 = 0            
     S_1_T_n = 0
-    patients = dataset_dict.keys()                                                ## 读取Patients[]dic： patients="aaaaaaac" ；  dataset_dict.keys()=所有’aaaaaaax‘  
-    for pat in patients:
-        # 1. deal :filter out the patients with 1 session and 1 take in this session            
-        if len(dataset_dict[pat]) == 1:                                           ## 选出只有一段session 一段 token 的病人PAT "aaaaaaxx"
-           S_1_T_1+=1         
-        else:
-            # get all sessions from this patient, and a second list with all the takes in this session  
-            sessions = []  # list with session ids                                 ## "PAT"这个病人的所有 session id like S001 S002 S003
-            sessions_takes = [] # list with same order as sessions, at index of an session id there is an list with all takes in this session  类似矩阵 列是2002-02-02等 行是s_001_t_000,s_001_t_001,...
-            for Pat_X in dataset_dict[pat]:
-                s_id, token_id, _, _ = Pat_X                  # 读取这两个值 s_id 是S_00X_2022-01-01 ,token_id是't_00X'等
-                if s_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
-                    sessions.append(s_id)                                        
-                    sessions_takes.append([token_id])                               
-                else:                                                              ## S001下还有 t002,t003...找到S001的index位置，插入take的id
-                    session_index = sessions.index(s_id)
-                    sessions_takes[session_index].append(token_id)   
-                    
-            #2. deal with patients with 1 session
-            if len(sessions) == 1:                                                  ## 病人'PAT_a'只有一个Session 
-                S_1_T_n+=1
-                '''# choose 10% of this patients as test/Validation
-                train_bool = rand_bool(0.9)                                         ## 分配 90%到训练集 ； 
-                if train_bool:
-                    train_bool = rand_bool(0.4)                                     ## 40% 这90%的直接进训练集
-                    #choose 40% of all patients as train, and from 60% choose one take to validation/test
-                    if train_bool: # add to train                   
-                        train_dataset[pat] = dataset_dict[pat]
-                    
-                    else:  #choose the take and add to test/validation
-                        number_tokens = len(sessions_takes[0])                        ## 这个病人唯一的Session有几个Token 
-                        val_test_take = np.random.randint(0, number_tokens)  #random int between 0 (inclusive) and number of all takes (exclusive) --> we get the indexes of the take list 随机选一个token的index
-                        # now we add this take to test/validation (50/50)
-                        # --> this patients are used for in session accuracy
-                        val_test = [dataset_dict[pat][val_test_take]]
-                                                
-                        validation_bool = rand_bool(0.5)                              ## 50% 分配入验证或测试
-                        if validation_bool:
-                            validation_dataset[pat] = val_test
-                        else:
-                            test_dataset[pat] = val_test
-                        
-                        #add the rest of the takes to train                           ##除了随机的token以外的进入训练集
-                        train_takes = []
-                        for take in dataset_dict[pat]:
-                            if take not in val_test:
-                                train_takes.append(take)
-                        
-                        train_dataset[pat] = train_takes
-                        
-                # --> the 10% get added to validation/test                             ## 剩余一开始10%没被选上训练集的 50/50 V or Test
-                else:
-                    validation_bool = rand_bool(0.5)
-                    if validation_bool:
-                        validation_dataset[pat] = dataset_dict[pat]
-                    else:
-                        test_dataset[pat] = dataset_dict[pat]'''
-                        
-            #3. deal with patients with more than 1 sessions
-            else:
-                number_sessions = len(sessions) #number of sessions from an patient          ## 这个PAT_X具体有几个 Session n=？
-                #with a probability of 10% chose 1 session(with all takes) from this patient    10%
-                test_val_bool = rand_bool(0.1)     
-                if test_val_bool:
-                    number_session = np.random.randint(0, number_sessions)                      ##随机选一个Session
-                    choosen_session_id = sessions[number_session] #chose the sesion randomly
-                    
-                    takes_from_choosen_session, takes_without_choosen_session = seperate_session_patient(dataset_dict[pat], choosen_session_id)
-                    #add all takes not from the choosen session to train
-                    train_dataset[pat] = takes_without_choosen_session
-                    #add the choosen session to validation/test (50/50)
-                    validation_bool = rand_bool(0.5)
-                    if validation_bool:
-                        validation_dataset[pat] = takes_from_choosen_session
-                    else:
-                        test_dataset[pat] = takes_from_choosen_session
-                    
-                else:
-                    #with a probability of 20% (only if no sessios has been choosen so far from this patient) take the session with the LEAST takes as test/validation
-                    #this helps keeping the train data high enough in comparison to the approach above which chooses completly random 和完全随机相比 保证训练集的质量
-                    test_val_bool = rand_bool(0.2)         
-                    if test_val_bool:
-                        least_takes = [sessions[0],len(sessions_takes[0])]  # (session_id, number of takes)
-                        for i in range (1, len(sessions)):                            ## 循环for 找最小token的Session
-                            if len(sessions_takes[i]) < least_takes[1]:
-                                #choose the session with the least entry takes
-                                least_takes = [sessions[i],len(sessions_takes[i])]
-                            elif len(sessions_takes[i]) == least_takes[1]:             ## 如果有两个最小值的Session 50\50随便选一个 
-                                #if the session has the same number of takes as the current minimum session, randomly choose (50/50) on of the 2 sessions 
-                                choose = rand_bool(0.5)
-                                if choose:
-                                    least_takes = [sessions[i],len(sessions_takes[i])]
-                        
-                        #choose the session with the least entries as test/val session            
-                        choosen_session_id = least_takes[0]
-                        
-                        takes_from_choosen_session, takes_without_choosen_session = seperate_session_patient(dataset_dict[pat], choosen_session_id)
-                        #add all takes not from the choosen session to train
-                        train_dataset[pat] = takes_without_choosen_session
-                        #add the choosen session 
-                        validation_bool = rand_bool(0.5)
-                        if validation_bool:
-                            validation_dataset[pat] = takes_from_choosen_session
-                        else:
-                            test_dataset[pat] = takes_from_choosen_session
-                              
-                    else:
-                        train_dataset[pat] = dataset_dict[pat]
+    Dataset_dic = {}
+    patients_id = patient_dic.keys()
+    for p_X in patients_id:
+        sessions = []  # list with session ids                                 ## "PAT"这个病人的所有 session id like S001 S002 S003
+                                                                ##  ['s_001',             's_002',            's_003']          
+        sessions_takes = [] # list with same order as sessions, at index of an session id there is an list with all takes in this session  类似矩阵 列是2002-02-02等 行是s_001_t_000,s_001_t_001,...
+                                                                    #[['t_000', 't_001'], ['t_000', 't_001'], ['t_000', 't_001', 't_002']]
+        Add_Dataset = []
         
+        for Pat_X in patient_dic[p_X]:                                 # 相当于 p_X 这个病人的所有.edf,一个一个循环[_,_,_,_,_,_,_]
+                s_id, token_id, test_time, _,_, _ = Pat_X
+                # filter out the edf_time less than 10 mins
+                if int(test_time)> 600:
+                    Add_Dataset.append(Pat_X) 
+                    #print('ADD=',Add_Dataset)
+                    if s_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
+                     sessions.append(s_id)                                        
+                     sessions_takes.append([token_id])  
+                    else:                                                              ## S001下还有 t002,t003...找到S001的index位置，插入take的id
+                     session_index = sessions.index(s_id)
+                     sessions_takes[session_index].append(token_id)
+        # 1. deal :filter out the patients with 1 session and 1 take in this session            
+        if len(Add_Dataset) == 1:
+           S_1_T_1+=1  
+        # 2. deal with patients with 1 session
+        elif len(sessions) == 1:                                                  
+           S_1_T_n+=1
+        # 3. deal with patients with more than 1 sessions
+        else:
+ 
+         Dataset_dic[p_X] = Add_Dataset
+                 
     print('S_1_T_1=',S_1_T_1)
     print('S_1_T_n=',S_1_T_n)
-                
-    return (train_dataset, validation_dataset, test_dataset)
+    
 
-
+    return Dataset_dic
+        
 def convert_to_pandas_dataframe(dataset_dict):
+    # patients_dataframe
     convert_list = []
     keys = dataset_dict.keys()                                       # P_id=Patient id 'aaaaaaac'
     for P_id in keys:
         patient_id = str(P_id)                                       # P_record
         P_record = dataset_dict[P_id] 
         for take in P_record:
-            session_id, take_id, path_to_edf, info_meta = take
-            convert_list.append([patient_id, session_id, take_id, path_to_edf, info_meta])
-    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id_date', 'token_id', 'path_to_edf', 'edf_info'])
+            session_id, take_id, session_time,session_date,path_to_edf, info_meta = take
+            convert_list.append([patient_id, session_id, take_id, session_time,session_date,path_to_edf, info_meta])
+    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf', 'edf_info'])
     
-    return df
+    return df             
+
+def split_train_val_test(dataset_dict):                                           ## Patients[] --> 训练集()train_dataset、验证集validation_dataset和测试集test_dataset
+    
+    #splited datasets created                                                     ## 初始化
+    train_dataset = {}                                                            
+    validation_dataset = {}
+    test_dataset = {} 
+    
+    patients = dataset_dict.keys()                                                ## 读取Patients[]dic： patients="aaaaaaac" ；  dataset_dict.keys()=所有’aaaaaaax‘  
+    for pat in patients:
+         train_bool = rand_bool(0.8)
+         if train_bool:
+                train_dataset[pat] = dataset_dict[pat]
+         else:
+                validation_bool = rand_bool(0.5)                                  ## 设定 20%的病人.edf 10%为验证集 10%为测试集
+                if validation_bool:
+                    validation_dataset[pat] = dataset_dict[pat]
+                else:
+                    test_dataset[pat] = dataset_dict[pat]
+             
+    return (train_dataset, validation_dataset, test_dataset)
 
 
+def get_challenges_subsets(patients_dataframe, subset_size=100,number_subsets=1):
+    # Get a random subset of patients_dataframe, each containing subset_size~100 recording.
+    
+    total_rows = len(patients_dataframe)
+    
+    if total_rows < subset_size:
+        raise ValueError("challenges_subsets bigger than DataFrame")
+
+    subsets = patients_dataframe.sample(n=subset_size)  # Random selection of 100 rows
+       
+    return subsets
 
 
 
 # %%
 
-path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code'
+path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000'
 
 
 patients_data = get_patients(path_to_edf_files)
-patients_dataset = total_numbers_dataset(patients_data)
-train_dataset, validation_dataset, test_dataset=split_train_val_test(patients_data)   
-#print(patients_data['aaaaaaab'])
-#print(patient_session)
-#print(patient_without_session)
-#print(patients_dataset)
+raw_dataset_number = total_numbers_dataset(patients_data)
+patients_dataset = get_dataset(patients_data)
+patients_dataframe=convert_to_pandas_dataframe(patients_dataset)
+train_dataset, validation_dataset, test_dataset=split_train_val_test(patients_dataset)
+challenges_datasets = get_challenges_subsets(patients_dataframe)
+
+
+
 
 def export_dataset_to_txt(dataset, filename):
     with open(filename, 'w', encoding='utf-8') as file:
