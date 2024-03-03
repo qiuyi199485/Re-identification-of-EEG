@@ -52,7 +52,7 @@ def get_patients(path):                                                         
             corrupted, edf_info = test_edf_corrupted_info(path_to_edf)                    # false, metadata
             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    patients[patient_id].append(('s_' + session_id+'_'+str(edf_info['meas_date'])[0:10], 't_' + take_id, path_to_edf, edf_info))
+                    patients[patient_id].append(('s_' + session_id+'_'+str(edf_info['meas_time'])[0:10], 't_' + take_id, path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
                     patients[patient_id] = [('s_' + session_id+'_'+str(edf_info['meas_date'])[0:10], 't_' + take_id, path_to_edf, edf_info)]
             
@@ -158,7 +158,7 @@ def split_train_val_test(dataset_dict):                                         
                         val_test_take = np.random.randint(0, number_tokens)  #random int between 0 (inclusive) and number of all takes (exclusive) --> we get the indexes of the take list 随机选一个token的index
                         # now we add this take to test/validation (50/50)
                         # --> this patients are used for in session accuracy
-                        val_test = [dataset_dict[pat][val_test_take]]
+                        val_test1 = [dataset_dict[pat][val_test_take]]
                                                 
                         validation_bool = rand_bool(0.5)                              ## 50% 分配入验证或测试
                         if validation_bool:
