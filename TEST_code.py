@@ -52,9 +52,9 @@ def get_patients(path):                                                         
             corrupted, edf_info = test_edf_corrupted_info(path_to_edf)                    # false, metadata
             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    patients[patient_id].append((str(edf_info['meas_date'])[0:10], 's_' + session_id , 't_' + take_id, path_to_edf, edf_info))
+                    patients[patient_id].append(('s_' + session_id+'_'+str(edf_info['meas_date'])[0:10], 't_' + take_id, path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
-                    patients[patient_id] = [(str(edf_info['meas_date'])[0:10], 's_' + session_id , 't_' + take_id, path_to_edf, edf_info)]
+                    patients[patient_id] = [('s_' + session_id+'_'+str(edf_info['meas_date'])[0:10], 't_' + take_id, path_to_edf, edf_info)]
             
     total_numbers_dataset(patients)        
 
@@ -68,7 +68,7 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     #b=0
     for patient_id in patients.keys():                 # 一共会诊几次     patient_id='aaaaaaxx'
         sessions = []
-        for (_,session_id, _ , _, _) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
+        for (session_id, _ , _, _) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
             if session_id not in sessions:
                 sessions.append(session_id)
                 #print(sessions)
@@ -96,8 +96,8 @@ def seperate_session_patient(patient, session_id):             #通过日期2002
     patient_without_session = []
     
     for ses_id in patient:                                       # s001-00X 
-        _,session_id_take,_, _, _ = ses_id
-        if session_id_take == session_id:
+        session_id_data,_, _, _ = ses_id
+        if session_id_data == session_id:
             patient_session.append(ses_id)
         else:
             patient_without_session.append(ses_id)
@@ -135,7 +135,7 @@ def split_train_val_test(dataset_dict):                                         
             sessions = []  # list with session ids                                 ## "PAT"这个病人的所有 session id like S001 S002 S003
             sessions_takes = [] # list with same order as sessions, at index of an session id there is an list with all takes in this session  类似矩阵 列是2002-02-02等 行是s_001_t_000,s_001_t_001,...
             for Pat_X in dataset_dict[pat]:
-                _,s_id, token_id, _, _ = Pat_X                  # 读取这两个值 s_id 是S_00X ,token_id是't_00X'等
+                s_id, token_id, _, _ = Pat_X                  # 读取这两个值 s_id 是S_00X ,token_id是't_00X'等
                 if s_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
                     sessions.append(s_id)                                        
                     sessions_takes.append([token_id])                               
@@ -237,14 +237,14 @@ def split_train_val_test(dataset_dict):                                         
 
 def convert_to_pandas_dataframe(dataset_dict):
     convert_list = []
-    keys = dataset_dict.keys()
-    for key in keys:
-        patient_id = str(key)
-        takes = dataset_dict[key] 
-        for take in takes:
+    keys = dataset_dict.keys()                                       # P_id=Patient id 'aaaaaaac'
+    for P_id in keys:
+        patient_id = str(P_id)                                       # P_record
+        P_record = dataset_dict[P_id] 
+        for take in P_record:
             session_id, take_id, path_to_edf, info_meta = take
             convert_list.append([patient_id, session_id, take_id, path_to_edf, info_meta])
-    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id/date', 'take_id', 'path_to_edf', 'edf_info'])
+    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id_date', 'token_id', 'path_to_edf', 'edf_info'])
     
     return df
 
@@ -259,7 +259,6 @@ path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code'
 
 patients_data = get_patients(path_to_edf_files)
 patients_dataset = total_numbers_dataset(patients_data)
-#patient_session, patient_without_session=seperate_session_patient(patients_data['aaaaaaaf'], 's_002_t000')
 train_dataset, validation_dataset, test_dataset=split_train_val_test(patients_data)   
 #print(patients_data['aaaaaaab'])
 #print(patient_session)
@@ -274,13 +273,18 @@ def export_dataset_to_txt(dataset, filename):
                 file.write(f"{value}\n")
             file.write("\n")                              # 换行
 
-# 定义文件路径
+# defination path   定义文件路径
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 train_file_path = os.path.join(desktop_path, "train_dataset.txt")
 validation_file_path = os.path.join(desktop_path, "validation_dataset.txt")
 test_file_path = os.path.join(desktop_path, "test_dataset.txt")
 
-# 导出数据集
+# export dataset to desltop  导出数据集
 export_dataset_to_txt(train_dataset, train_file_path)
 export_dataset_to_txt(validation_dataset, validation_file_path)
 export_dataset_to_txt(test_dataset, test_file_path)
+
+
+train_dataset_pd=convert_to_pandas_dataframe(train_dataset)
+test_dataset_pd=convert_to_pandas_dataframe(test_dataset)
+validation_dataset_pd=convert_to_pandas_dataframe(validation_dataset)
