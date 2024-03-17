@@ -39,9 +39,9 @@ def get_patients(path):                                                         
         
         for filename in [f for f in filenames if f.endswith(".edf")]: #filter the files to the ones ending with edf   筛选文件 .edf  f=有几个文件 00000000_aaaaaaaa_s001_t000.edf
             #get all information from the file name
-            patient_id = filename[9:17]                                                  # aaaaaaaa 病人ID 9-16 不包括17
-            session_id = filename[19:22]                                                 # s001 病人会话次数
-            take_id = filename[24:27]                                                    # t000 第一个转换而来的token
+            patient_id = filename[0:8]                                                  # aaaaaaaa 病人ID 9-16 不包括17
+            session_id = filename[10:13]                                                 # s001 病人会话次数
+            take_id = filename[15:18]                                                    # t000 第一个转换而来的token
             path_to_edf = os.path.join(dirpath, filename)                                # os.path.join 合并路径和文件名= 文件完整路径
             #print(path_to_edf)
             import_progress += 1
@@ -197,7 +197,7 @@ def get_challenges_subsets(patients_dataframe, subset_size=100,number_subsets=1)
 
 # %%
 
-path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000'
+path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\'
 
 
 patients_data = get_patients(path_to_edf_files)
