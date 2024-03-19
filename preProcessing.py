@@ -6,9 +6,13 @@ os.environ['MNE_USE_NUMBA'] = 'false'
 import mne
 from mne.preprocessing import (ICA, create_eog_epochs, create_ecg_epochs,
                                corrmap, )
+import tensorflow as tf
+from tensorflow.keras import backend as K
+
 sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')  
 import settings as st
 import Build_Database as bd
+
 
     
 def filter_freq(raw, freq = [], f_min=st.f_min, f_max=st.f_max):                            #频率过滤
@@ -16,6 +20,8 @@ def filter_freq(raw, freq = [], f_min=st.f_min, f_max=st.f_max):                
     filter_raw = filter_raw.notch_filter(freq)                                              # freq 陷波频率 一般50Hz 去除50HZ影响
     
     return filter_raw
+
+
 
 
 def create_classification(df_train, df_val, df_test):                                       # 数据基于Patient_id分类处理
@@ -72,4 +78,6 @@ def create_classification(df_train, df_val, df_test):                           
     return df_train, df_val, df_test
     
 
-df_train, df_val, df_test=create_classification(bd.train_dataset_pd, bd.validation_dataset_pd, bd.test_dataset_pd)                                       
+df_train, df_val, df_test=create_classification(bd.train_dataset_pd, bd.validation_dataset_pd, bd.test_dataset_pd)      
+
+                      
