@@ -42,9 +42,10 @@ def filter_freq(raw, freq = 50, f_min=st.f_min, f_max=st.f_max):                
     
     return filter_raw
 
-Xtest = np.load('C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaaa\\s001_2015\\01_tcp_ar\\aaaaaaaa_s001_t000.edf') 
+#Xtest = np.load('C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaaa\\s001_2015\\01_tcp_ar\\aaaaaaaa_s001_t000.edf') 
 # shape: (num_eeg_segments, num_channels=21, time (e.g. 4 seconds at 250 Hz $\hat{=}$ 1000), 1)
 
-     
-y_pred = model.predict(Xtest, batch_size=1)
-#gender, age = predict_from_edf(path_to_edf_files)     
+filter_raw=filter_freq(raw)
+
+print(filter_raw.info)     
+#y_pred = model.predict(Xtest, batch_size=1)
