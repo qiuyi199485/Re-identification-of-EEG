@@ -16,6 +16,10 @@ import Build_Database as bd
 
 import autoreject
 
+from tensorflow.keras import layers
+from tensorflow.keras import models
+
+
 model_path = 'C:\\Users\\49152\\Desktop\\MA\\Code\\pretrained_net_autoreject1-40Hz\\'
 try:
     model = tf.keras.models.load_model(
