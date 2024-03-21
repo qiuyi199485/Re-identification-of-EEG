@@ -17,26 +17,24 @@ import autoreject
 
 path_to_edf = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaaa\\s001_2015\\01_tcp_ar\\aaaaaaaa_s001_t000.edf' 
 
-raw = mne.io.read_raw_edf(                                  ## mne library function for edf; mne.io.raw = mne对象， 包含了edf的元数据信息metadata
-            path_to_edf,                                        ## input path
-            preload=False,                                      ## save memory ; 数据在需要时才从磁盘读取
-            verbose=0,                                          ## 函数运行时，输出的详细信息级别
-            stim_channel=None) 
-
-
 def filter_freq(raw, freq = 50, f_min=st.f_min, f_max=st.f_max):                            #频率过滤
     filter_raw = raw.copy().load_data().filter(f_min, f_max, fir_design='firwin')           # 复制raw数据，保留原raw信号
     filter_raw = filter_raw.notch_filter(freq)                                              # freq 陷波频率 一般50Hz 去除50HZ影响
     
     return filter_raw
 
-#Xtest = np.load('C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaaa\\s001_2015\\01_tcp_ar\\aaaaaaaa_s001_t000.edf') 
-# shape: (num_eeg_segments, num_channels=21, time (e.g. 4 seconds at 250 Hz $\hat{=}$ 1000), 1)
 
 
+channels = ['EEG FP1-REF', 'EEG FP2-REF','EEG F7-REF','EEG F3-REF','EEG FZ-REF','EEG F4-REF','EEG F8-REF','EEG A1-REF','EEG T3-REF',
+            'EEG C3-REF','EEG CZ-REF','EEG C4-REF','EEG T4-REF','EEG A2-REF','EEG T5-REF','EEG P3-REF','EEG PZ-REF','EEG P4-REF',
+            'EEG T6-REF','EEG O1-REF','EEG O2-REF']
+
+channels_of_interest = ['EEG FP1-REF', 'EEG FP2-REF','EEG F7-REF','EEG F3-REF','EEG FZ-REF','EEG F4-REF','EEG F8-REF','EEG A1-REF','EEG T3-REF',
+            'EEG C3-REF','EEG CZ-REF','EEG C4-REF','EEG T4-REF','EEG A2-REF','EEG T5-REF','EEG P3-REF','EEG PZ-REF','EEG P4-REF',
+            'EEG T6-REF','EEG O1-REF','EEG O2-REF']
 
 def read_eeg_data_from_file_to_np(
-        file_path: str, 
+        path_to_edf: str, 
         channels, 
         duration: float, 
         start: float, 
@@ -56,12 +54,24 @@ def read_eeg_data_from_file_to_np(
     Returns:
         np.array: [description]
     """
-    f = mne.io.read_raw_edf(file_path, verbose=0)
+    f = mne.io.read_raw_edf( 
+            path_to_edf,                                        ## input path
+            preload=False,                                      ## save memory ; 数据在需要时才从磁盘读取
+            verbose=0,                                          ## 函数运行时，输出的详细信息级别
+            stim_channel=None)
+    
+    
+    
     f.crop(start,
            start+duration)
     f.load_data()
     f.filter(lower_freq, upper_freq)
-    assert f.info['sfreq']==st.sfreq
+    #assert f.info['sfreq']==st.f_s
+    if f.info['sfreq'] != st.f_s:
+     print(f"Resample to 250 Hz")
+     f.resample(sfreq=st.f_s, npad="auto")
+    
+    f.set_eeg_reference(ref_channels='average')
     # Get numpy array
     data = f.get_data(
         picks=channels, 
@@ -72,11 +82,46 @@ def read_eeg_data_from_file_to_np(
 
 
 
-filter_raw=filter_freq(raw)
 
-print(filter_raw.info)    
+def run_autoreject_pipeline(
+    path_to_edf, 
+    channels_of_interest,
+    tmax_sec,
+    window_size,
+    overlap, 
+    tmin_sec):
+    """Loads *.edf and returns global threshold. 
+
+    Args:
+        file_path (str): Path to edf file.
+        channels_of_interest (list): List of channel names
+        tmax_sec (float): Last EEG time-point in seconds.
+        window_size (int, optional)
+        overlap (float, optional) 
+        tmin_sec (int, optional)
+
+    Returns:
+        float: Threshold
+    """
+    raw = mne.io.read_raw_edf( 
+            path_to_edf,                                        ## input path
+            preload=False,                                      ## save memory ; 数据在需要时才从磁盘读取
+            verbose=0,                                          ## 函数运行时，输出的详细信息级别
+            stim_channel=None)
+    
+    raw = raw.copy().pick_channels(channels_of_interest, ordered=True)
+    raw.crop(tmin_sec,tmax=tmax_sec)
+    raw.load_data()
+    raw.filter(1,40)
+    raw.set_eeg_reference(ref_channels='average')
+    #return loop_autoreject(raw, n_splits=5, window_size=window_size, overlap=overlap)
+
+
+data = read_eeg_data_from_file_to_np(path_to_edf,channels,4/60,2,1,40)
  
-#y_pred = model.predict(Xtest, batch_size=1)
+ 
+ 
+#
 
 
 # Load trained Model for sex and age
@@ -90,3 +135,8 @@ try:
     print("模型加载成功")
 except Exception as e:
     print(f"模型加载失败: {e}")
+    
+#Xtest = np.load('C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaaa\\s001_2015\\01_tcp_ar\\aaaaaaaa_s001_t000.edf') 
+# shape: (num_eeg_segments, num_channels=21, time (e.g. 4 seconds at 250 Hz $\hat{=}$ 1000), 1)    
+Xtest =  data  
+y_pred = model.predict(Xtest, batch_size=1)
