@@ -8,13 +8,15 @@ from mne.preprocessing import (ICA, create_eog_epochs, create_ecg_epochs,
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
+
+
 sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')  
 import settings as st
 import Build_Database as bd
 
 import autoreject
 
-model_path = 'C:\\Users\\49152\\Desktop\\MA\\Code\\pretrained_net_ica1-40Hz\\'
+model_path = 'C:\\Users\\49152\\Desktop\\MA\\Code\\pretrained_net_autoreject1-40Hz\\'
 try:
     model = tf.keras.models.load_model(
         #model_path,
@@ -31,9 +33,11 @@ except Exception as e:
 try:
     model = tf.keras.models.load_model(model_path)
     model.summary()
+    print(model.value)
     print("loaded successfully")
 except Exception as e:
     print(f"Error: {e}")
+
 
 try:
     input_shape = model.input_shape  
