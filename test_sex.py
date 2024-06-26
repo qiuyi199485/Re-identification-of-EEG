@@ -117,7 +117,7 @@ def run_autoreject_pipeline(
     #return loop_autoreject(raw, n_splits=5, window_size=window_size, overlap=overlap)
 
 
-data = read_eeg_data_from_file_to_np(path_to_edf,channels,4/60,2,1,40)
+data = read_eeg_data_from_file_to_np(path_to_edf,channels,4,2,1,40)
  
  
  
@@ -126,17 +126,18 @@ data = read_eeg_data_from_file_to_np(path_to_edf,channels,4/60,2,1,40)
 
 # Load trained Model for sex and age
 
-model_path = 'C:\\Users\\49152\\Desktop\\MA\\Code\\pretrained_net_ica1-40Hz'
+model_path = 'C:\\Users\\49152\\Desktop\\MA\\Code\\pretrained_net_ica1-40Hz\\'
 try:
     model = tf.keras.models.load_model(
-        model_path,
+        #model_path,
+        'C:\\Users\\49152\\Desktop\\MA\\Code\\pretrained_net_ica1-40Hz',
         custom_objects={'K': K},
         compile=False)
     print("模型加载成功")
+    Xtest =  data  
+    y_pred = model.predict(Xtest, batch_size=1)
 except Exception as e:
     print(f"模型加载失败: {e}")
     
 #Xtest = np.load('C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaaa\\s001_2015\\01_tcp_ar\\aaaaaaaa_s001_t000.edf') 
 # shape: (num_eeg_segments, num_channels=21, time (e.g. 4 seconds at 250 Hz $\hat{=}$ 1000), 1)    
-Xtest =  data  
-y_pred = model.predict(Xtest, batch_size=1)
