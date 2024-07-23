@@ -16,13 +16,14 @@ def test_edf_corrupted_info(path_to_edf):                      ##check if xx.edf
             verbose=0, 
             stim_channel=None)
         edf_info = f.info 
-        edf_time = int(f.times[-1])                  ## edf可以用mne读出来就是 edf_info=edf所有metadat   
+        edf_time = int(f.times[-1]) 
+        edf_ch_names = f.info['ch_names']## edf可以用mne读出来就是 edf_info=edf所有metadat   
         del f
     except:                                                     ## error
         print('Import error on file: ' +  path_to_edf)
         edf_corrupted = True
         
-    return (edf_corrupted, edf_info, edf_time)
+    return (edf_corrupted, edf_info, edf_time, edf_ch_names)
 
 def get_date_edf(path_to_edf):                                  ## EEG data
     raw = mne.io.read_raw_edf(                                  ## mne library function for edf; mne.io.raw = mne对象， 包含了edf的元数据信息metadata

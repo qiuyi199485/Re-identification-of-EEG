@@ -43,13 +43,15 @@ def get_patients(path):                                                         
             session_id = filename[10:13]                                                 # s001 病人会话次数
             take_id = filename[15:18]                                                    # t000 第一个转换而来的token
             path_to_edf = os.path.join(dirpath, filename)                                # os.path.join 合并路径和文件名= 文件完整路径
+            
+    
             #print(path_to_edf)
             import_progress += 1
             if import_progress%700==0:   #this loop displays the progress  循环显示进度  除以700余0==每700次给用户汇报一次进度
                 clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
                 
-            corrupted, edf_info, edf_time = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
+            corrupted, edf_info, edf_time, edf_chan = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
                     patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
@@ -141,7 +143,7 @@ def get_dataset(patient_dic):
                  
     print('S_1_T_1=',S_1_T_1)
     print('S_1_T_n=',S_1_T_n)
-    
+    print('Dataset_dic size:', len(Dataset_dic))
 
     return Dataset_dic
         
@@ -156,7 +158,7 @@ def convert_to_pandas_dataframe(dataset_dict):
             session_id, take_id, session_time,session_date,path_to_edf, info_meta = take
             convert_list.append([patient_id, session_id, take_id, session_time,session_date,path_to_edf, info_meta])
     df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf', 'edf_info'])
-    
+   
     return df             
 
 def split_train_val_test(dataset_dict):                                           ## Patients[] --> 训练集()train_dataset、验证集validation_dataset和测试集test_dataset
@@ -181,7 +183,7 @@ def split_train_val_test(dataset_dict):                                         
     return (train_dataset, validation_dataset, test_dataset)
 
 
-def get_challenges_subsets(patients_dataframe, subset_size=100,number_subsets=1):
+def get_challenges_subsets(patients_dataframe, subset_size=50,number_subsets=1):
     # Get a random subset of patients_dataframe, each containing subset_size~100 recording.
     
     total_rows = len(patients_dataframe)

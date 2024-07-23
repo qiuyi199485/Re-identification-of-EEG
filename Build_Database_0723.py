@@ -105,6 +105,12 @@ def seperate_session_patient(patient, session_id):             #通过S_00X_2002
 def get_dataset(patient_dic):
     # filter datasets based on user-defined configurations; 
     # configurations: 1. patients have at least 2 sessions; 2. edf times at least 10mins~ 600sec
+    
+    REQUIRED_CHANNELS = {"EEG FP1-LE", "EEG FP2-LE", "EEG F7-LE", "EEG F3-LE", "EEG Fz-LE", "EEG F4-LE", "EEG F8-LE", 
+                         "EEG A1-LE", "EEG T3-LE", "EEG C3-LE", "EEG Cz-LE", "EEG C4-LE", "EEG T4-LE", "EEG A2-LE", 
+                         "EEG T5-LE", "EEG P3-LE", "EEG Pz-LE", "EEG P4-LE", "EEG T6-LE", "EEG O1-LE", "EEG O2-LE"}
+    
+    
     S_1_T_1 = 0            
     S_1_T_n = 0
     Dataset_dic = {}
@@ -120,6 +126,9 @@ def get_dataset(patient_dic):
                 s_id, token_id, test_time, _,_, _ = Pat_X
                 # filter out the edf_time less than 10 mins
                 if int(test_time)> 600:
+                    
+                 ch_names = set(edf_info['ch_names'])
+                 if REQUIRED_CHANNELS.issubset(ch_names):
                     Add_Dataset.append(Pat_X) 
                     #print('ADD=',Add_Dataset)
                     if s_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
@@ -142,7 +151,7 @@ def get_dataset(patient_dic):
     print('S_1_T_1=',S_1_T_1)
     print('S_1_T_n=',S_1_T_n)
     
-
+    print('Dataset_dic size:', len(Dataset_dic))
     return Dataset_dic
         
 def convert_to_pandas_dataframe(dataset_dict):
