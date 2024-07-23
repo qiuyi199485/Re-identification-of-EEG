@@ -9,8 +9,8 @@ import pandas as pd
 #Import of self created python script
 sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')                              # 允许脚本导入一个特定路径下的自定义Python脚本，例如settings模块和tools模块里的函数。
 import settings
-from tools import test_edf_corrupted_info, get_date_edf                           ## (edf_corrupted, edf_info) false没坏，edf_metadata; edf measurment date yyyy-mm-dd
-
+#from tools import test_edf_corrupted_info, get_date_edf                           ## (edf_corrupted, edf_info) false没坏，edf_metadata; edf measurment date yyyy-mm-dd
+from tools import get_date_edf
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,6 +20,24 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 mne.set_log_level('WARNING')
 
 #%% Definitions
+def test_edf_corrupted_info(path_to_edf):                      ##check if xx.edf can be read
+    edf_corrupted = False
+    edf_info = False
+    try:
+        f = mne.io.read_raw_edf(                                ## mne.io.f = mne对象， 包含了edf的元数据信息metadata
+            path_to_edf, 
+            preload=False,                                      
+            verbose=0, 
+            stim_channel=None)
+        edf_info = f.info 
+        edf_time = int(f.times[-1]) 
+        edf_ch_names = f.info['ch_names']## edf可以用mne读出来就是 edf_info=edf所有metadat   
+        del f
+    except:                                                     ## error
+        print('Import error on file: ' +  path_to_edf)
+        edf_corrupted = True
+        
+    return (edf_corrupted, edf_info, edf_time, edf_ch_names)
 
 def get_patients(path):                                                                    ## 遍历所有文件寻找. edf文件，并转化为dictionary
     patients = {} #key: patient_id ; value: list [tuple (date_of_the_take, sesssion_id+take_id, path_to_edf, meta_file), (), ()]   
@@ -33,6 +51,7 @@ def get_patients(path):                                                         
 
 
     import_progress = 0  #initializing the progress displaying
+    a=0
     
     for dirpath, dirnames, filenames in os.walk(path):
         #walk recursive from a certain path to find all files
@@ -44,22 +63,34 @@ def get_patients(path):                                                         
             take_id = filename[15:18]                                                    # t000 第一个转换而来的token
             path_to_edf = os.path.join(dirpath, filename)                                # os.path.join 合并路径和文件名= 文件完整路径
             
-    
-            #print(path_to_edf)
+               
+          #print(path_to_edf)
             import_progress += 1
             if import_progress%700==0:   #this loop displays the progress  循环显示进度  除以700余0==每700次给用户汇报一次进度
                 clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
+            
+            required_channels = set([
+                 "EEG FP1-LE", "EEG FP2-LE", "EEG F7-LE", "EEG F3-LE", "EEG FZ-LE", "EEG F4-LE", "EEG F8-LE", 
+                         "EEG A1-LE", "EEG T3-LE", "EEG C3-LE", "EEG CZ-LE", "EEG C4-LE", "EEG T4-LE", "EEG A2-LE", 
+                         "EEG T5-LE", "EEG P3-LE", "EEG PZ-LE", "EEG P4-LE", "EEG T6-LE", "EEG O1-LE", "EEG O2-LE"
+             ])
+    
                 
             corrupted, edf_info, edf_time, edf_chan = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
-            if not corrupted:
+            channels_set = set(edf_chan)
+            
+            if required_channels.issubset(channels_set):
+             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
                     patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
                     patients[patient_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info)]
-            
+            else:
+                a=a+1
+        
     total_numbers_dataset(patients)        
-
+    print('bufuhede =',a)
     return patients
 
 def total_numbers_dataset(patients):                   # 打印出关于这个数据集patients[]的一些统计总信息：病人数，会诊数量，EEG一共几段
@@ -143,7 +174,7 @@ def get_dataset(patient_dic):
                  
     print('S_1_T_1=',S_1_T_1)
     print('S_1_T_n=',S_1_T_n)
-    print('Dataset_dic size:', len(Dataset_dic))
+
 
     return Dataset_dic
         

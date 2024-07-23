@@ -7,10 +7,11 @@ import numpy as np
 from IPython.display import clear_output
 import pandas as pd
 #Import of self created python script
-sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')                              # 允许脚本导入一个特定路径下的自定义Python脚本，例如settings模块和tools模块里的函数。
+sys.path.insert( 1,'C:\\Users\\49152\\Documents\\GitHub\\Re-identification-of-EEG')                              # 允许脚本导入一个特定路径下的自定义Python脚本，例如settings模块和tools模块里的函数。
+#sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')       
 import settings
-from tools import test_edf_corrupted_info, get_date_edf                           ## (edf_corrupted, edf_info) false没坏，edf_metadata; edf measurment date yyyy-mm-dd
-
+#from tools import test_edf_corrupted_info, get_date_edf                           ## (edf_corrupted, edf_info) false没坏，edf_metadata; edf measurment date yyyy-mm-dd
+from tools import get_date_edf 
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,6 +19,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 #setup Frameworks
 mne.set_log_level('WARNING')
+
+
+def test_edf_corrupted_info(path_to_edf):                      ##check if xx.edf can be read
+    edf_corrupted = False
+    edf_info = False
+    try:
+        f = mne.io.read_raw_edf(                                ## mne.io.f = mne对象， 包含了edf的元数据信息metadata
+            path_to_edf, 
+            preload=False,                                      
+            verbose=0, 
+            stim_channel=None)
+        edf_info = f.info 
+        edf_time = int(f.times[-1]) 
+        edf_ch_names = f.info['ch_names']## edf可以用mne读出来就是 edf_info=edf所有metadat   
+        del f
+    except:                                                     ## error
+        print('Import error on file: ' +  path_to_edf)
+        edf_corrupted = True
+        
+    return (edf_corrupted, edf_info, edf_time, edf_ch_names)
+
 
 #%% Definitions
 
@@ -49,7 +71,7 @@ def get_patients(path):                                                         
                 clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
                 
-            corrupted, edf_info, edf_time = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
+            corrupted, edf_info, edf_time, edf_chan = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
                     patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
@@ -126,9 +148,6 @@ def get_dataset(patient_dic):
                 s_id, token_id, test_time, _,_, _ = Pat_X
                 # filter out the edf_time less than 10 mins
                 if int(test_time)> 600:
-                    
-                 ch_names = set(edf_info['ch_names'])
-                 if REQUIRED_CHANNELS.issubset(ch_names):
                     Add_Dataset.append(Pat_X) 
                     #print('ADD=',Add_Dataset)
                     if s_id not in sessions:                                         ## S001下没有其他token了，session[]新建下一个id S002；session_takes[]直接加上
@@ -148,10 +167,9 @@ def get_dataset(patient_dic):
  
          Dataset_dic[p_X] = Add_Dataset
                  
-    print('S_1_T_1=',S_1_T_1)
-    print('S_1_T_n=',S_1_T_n)
+    #print('S_1_T_1=',S_1_T_1)
+    #print('S_1_T_n=',S_1_T_n)
     
-    print('Dataset_dic size:', len(Dataset_dic))
     return Dataset_dic
         
 def convert_to_pandas_dataframe(dataset_dict):
@@ -176,9 +194,9 @@ def split_train_val_test(df):
     val_df = temp_df.sample(frac=0.5, random_state=1)
     test_df = temp_df.drop(val_df.index)
     
-    print(f"Training set size: {len(train_df)}")
-    print(f"Validation set size: {len(val_df)}")
-    print(f"Test set size: {len(test_df)}")
+    #print(f"Training set size: {len(train_df)}")
+    #print(f"Validation set size: {len(val_df)}")
+    #print(f"Test set size: {len(test_df)}")
     
     return train_df, val_df, test_df
 
