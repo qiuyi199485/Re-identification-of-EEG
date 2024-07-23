@@ -70,9 +70,26 @@ def get_patients(path):                                                         
             if import_progress%700==0:   #this loop displays the progress  循环显示进度  除以700余0==每700次给用户汇报一次进度
                 clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
+            
+            required_channels_1 = set([
+                 "EEG FP1-LE", "EEG FP2-LE", "EEG F7-LE", "EEG F3-LE", "EEG FZ-LE", "EEG F4-LE", "EEG F8-LE", 
+                         "EEG A1-LE", "EEG T3-LE", "EEG C3-LE", "EEG CZ-LE", "EEG C4-LE", "EEG T4-LE", "EEG A2-LE", 
+                         "EEG T5-LE", "EEG P3-LE", "EEG PZ-LE", "EEG P4-LE", "EEG T6-LE", "EEG O1-LE", "EEG O2-LE"
+             ])
+            
+            required_channels_2 = set([
+                 "EEG FP1-REF", "EEG FP2-REF", "EEG F7-REF", "EEG F3-REF", "EEG FZ-REF", "EEG F4-REF", "EEG F8-REF", 
+                         "EEG A1-REF", "EEG T3-REF", "EEG C3-REF", "EEG CZ-REF", "EEG C4-REF", "EEG T4-REF", "EEG A2-REF", 
+                         "EEG T5-REF", "EEG P3-REF", "EEG PZ-REF", "EEG P4-REF", "EEG T6-REF", "EEG O1-REF", "EEG O2-REF"
+             ])
+    
                 
             corrupted, edf_info, edf_time, edf_chan = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
-            if not corrupted:
+            channels_set = set(edf_chan)
+            
+            
+            if (required_channels_1.issubset(channels_set) or required_channels_2.issubset(channels_set)):
+             if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
                     patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
@@ -127,10 +144,6 @@ def seperate_session_patient(patient, session_id):             #通过S_00X_2002
 def get_dataset(patient_dic):
     # filter datasets based on user-defined configurations; 
     # configurations: 1. patients have at least 2 sessions; 2. edf times at least 10mins~ 600sec
-    
-    REQUIRED_CHANNELS = {"EEG FP1-LE", "EEG FP2-LE", "EEG F7-LE", "EEG F3-LE", "EEG Fz-LE", "EEG F4-LE", "EEG F8-LE", 
-                         "EEG A1-LE", "EEG T3-LE", "EEG C3-LE", "EEG Cz-LE", "EEG C4-LE", "EEG T4-LE", "EEG A2-LE", 
-                         "EEG T5-LE", "EEG P3-LE", "EEG Pz-LE", "EEG P4-LE", "EEG T6-LE", "EEG O1-LE", "EEG O2-LE"}
     
     
     S_1_T_1 = 0            
@@ -200,7 +213,7 @@ def split_train_val_test(df):
     
     return train_df, val_df, test_df
 
-def get_challenges_subsets(patients_dataframe, subset_size=100, number_subsets=1):
+def get_challenges_subsets(patients_dataframe, subset_size=50, number_subsets=1):
     total_rows = len(patients_dataframe)
     if total_rows < subset_size:
         raise ValueError("challenges_subsets bigger than DataFrame")
