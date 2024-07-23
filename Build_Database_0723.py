@@ -160,11 +160,17 @@ def convert_to_pandas_dataframe(dataset_dict):
     return df             
 
 
+# split dataset to train_val_test
 def split_train_val_test(df):
     train_df = df.sample(frac=0.8, random_state=1)
     temp_df = df.drop(train_df.index)
     val_df = temp_df.sample(frac=0.5, random_state=1)
     test_df = temp_df.drop(val_df.index)
+    
+    print(f"Training set size: {len(train_df)}")
+    print(f"Validation set size: {len(val_df)}")
+    print(f"Test set size: {len(test_df)}")
+    
     return train_df, val_df, test_df
 
 def get_challenges_subsets(patients_dataframe, subset_size=100, number_subsets=1):
