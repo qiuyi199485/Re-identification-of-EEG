@@ -204,14 +204,14 @@ def convert_to_pandas_dataframe(dataset_dict):
 def split_train_val_test(df):
     train_df = df.sample(frac=0.8, random_state=1)
     temp_df = df.drop(train_df.index)
-    val_df = temp_df.sample(frac=0.5, random_state=1)
-    test_df = temp_df.drop(val_df.index)
+    #val_df = temp_df.sample(frac=0.5, random_state=1)
+    test_df = temp_df.drop(temp_df.index)
     
     #print(f"Training set size: {len(train_df)}")
     #print(f"Validation set size: {len(val_df)}")
     #print(f"Test set size: {len(test_df)}")
     
-    return train_df, val_df, test_df
+    return train_df,  test_df
 
 def get_challenges_subsets(dataframe_df, subset_size=50, number_subsets=1):
     total_rows = len(dataframe_df)
@@ -236,17 +236,17 @@ def export_subset_to_excel(df, filename):
     df.to_excel(filename, index=False)
 
 # export subset to txt
-def export_subset_to_txt(df, filename):
-    df.to_csv(filename, sep='\t', index=False)
+#def export_subset_to_txt(df, filename):
+    #df.to_csv(filename, sep='\t', index=False)
 
 
 # defination path   定义文件路径
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
 dataframe_path = os.path.join(desktop_path, "dataframe.xlsx")
-train_subset_path = os.path.join(desktop_path, "train_subset.txt")
-validation_subset_path = os.path.join(desktop_path, "validation_subset.txt")
-test_subset_path = os.path.join(desktop_path, "test_subset.txt")
+train_subset_path = os.path.join(desktop_path, "train_subset.xlsx")
+#validation_subset_path = os.path.join(desktop_path, "validation_subset.txt")
+test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
 
 
 # export dataset to desltop  导出数据集
@@ -257,10 +257,12 @@ dataframe_df = pd.read_excel(dataframe_path)
 
 # get subset, trainset, validation subset, test subset
 subset_dataframe = get_challenges_subsets(dataframe_df)
-train_subset, validation_subset, test_subset = split_train_val_test(subset_dataframe)
+train_subset, test_subset = split_train_val_test(subset_dataframe)
 
 
 export_subset_to_excel(subset_dataframe, challenges_subset_path)
-export_subset_to_txt(train_subset, train_subset_path)
-export_subset_to_txt(validation_subset, validation_subset_path)
-export_subset_to_txt(test_subset, test_subset_path)
+export_subset_to_excel(train_subset, train_subset_path)
+export_subset_to_excel(test_subset, test_subset_path)
+#export_subset_to_txt(train_subset, train_subset_path)
+#export_subset_to_txt(validation_subset, validation_subset_path)
+#export_subset_to_txt(test_subset, test_subset_path)

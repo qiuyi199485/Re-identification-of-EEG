@@ -12,6 +12,8 @@ def read_eeg_from_edf(file_path):
     eeg_data = raw.get_data()
     return eeg_data
 
+
+
 # Fit AR model 
 def fit_ar_model(eeg_data, lags=6):
     ar_features = []
