@@ -70,24 +70,17 @@ def get_patients(path):                                                         
                 clear_output(wait=True)  # 清除前面的进度
                 print("Importing dataset:"+str(import_progress/700) + "%") 
             
-            required_channels = set([
-                 "EEG FP1-LE", "EEG FP2-LE", "EEG F7-LE", "EEG F3-LE", "EEG FZ-LE", "EEG F4-LE", "EEG F8-LE", 
-                         "EEG A1-LE", "EEG T3-LE", "EEG C3-LE", "EEG CZ-LE", "EEG C4-LE", "EEG T4-LE", "EEG A2-LE", 
-                         "EEG T5-LE", "EEG P3-LE", "EEG PZ-LE", "EEG P4-LE", "EEG T6-LE", "EEG O1-LE", "EEG O2-LE"
-             ])
-    
+            
                 
             corrupted, edf_info, edf_time, edf_chan = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
-            channels_set = set(edf_chan)
             
-            if required_channels.issubset(channels_set):
-             if not corrupted:
+            
+            
+            if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
                     patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
                 else:                                                    # 新病人 ，新建病例
                     patients[patient_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info)]
-            else:
-                a=a+1
         
     total_numbers_dataset(patients)        
     print('bufuhede =',a)

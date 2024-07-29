@@ -91,9 +91,9 @@ def get_patients(path):                                                         
             if (required_channels_1.issubset(channels_set) or required_channels_2.issubset(channels_set)):
              if not corrupted:
                 if patient_id in patients:                               # 添加到patient字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info))
+                    patients[patient_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_info ))
                 else:                                                    # 新病人 ，新建病例
-                    patients[patient_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_info)]
+                    patients[patient_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan, edf_info)]
             
     total_numbers_dataset(patients)        
 
@@ -107,7 +107,7 @@ def total_numbers_dataset(patients):                   # 打印出关于这个�
     #b=0
     for patient_id in patients.keys():                 # 一共会诊几次     patient_id='aaaaaaxx'
         sessions = []
-        for (session_id, _ ,_, _, _, _ ) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
+        for (session_id, _ ,_, _, _, _,_ ) in patients[patient_id]:     # 只考虑这个patients[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
             if session_id not in sessions:
                 sessions.append(session_id)
                 #print(sessions)
@@ -132,7 +132,7 @@ def seperate_session_patient(patient, session_id):             #通过S_00X_2002
     patient_without_session = []
     
     for P_X in patient:                                       # s_001
-        session_id_1 , _ ,_ , _, _, _ = P_X
+        session_id_1 , _ ,_ , _, _, _,_ = P_X
         if session_id_1 == session_id:
             patient_session.append(P_X)
         else:
@@ -158,7 +158,7 @@ def get_dataset(patient_dic):
         Add_Dataset = []
         
         for Pat_X in patient_dic[p_X]:                                 # 相当于 p_X 这个病人的所有.edf,一个一个循环[_,_,_,_,_,_,_]
-                s_id, token_id, test_time, _,_, _ = Pat_X
+                s_id, token_id, test_time, _,_, _ ,_= Pat_X
                 # filter out the edf_time less than 10 mins
                 if int(test_time)> 600:
                     Add_Dataset.append(Pat_X) 
@@ -193,9 +193,9 @@ def convert_to_pandas_dataframe(dataset_dict):
         patient_id = str(P_id)                                       # P_record
         P_record = dataset_dict[P_id] 
         for take in P_record:
-            session_id, take_id, session_time,session_date,path_to_edf, info_meta = take
-            convert_list.append([patient_id, session_id, take_id, session_time,session_date,path_to_edf, info_meta])
-    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf', 'edf_info'])
+            session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta = take
+            convert_list.append([patient_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta])
+    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel' ,'edf_info'])
     
     return df             
 
@@ -213,11 +213,11 @@ def split_train_val_test(df):
     
     return train_df, val_df, test_df
 
-def get_challenges_subsets(patients_dataframe, subset_size=50, number_subsets=1):
-    total_rows = len(patients_dataframe)
+def get_challenges_subsets(dataframe_df, subset_size=50, number_subsets=1):
+    total_rows = len(dataframe_df)
     if total_rows < subset_size:
         raise ValueError("challenges_subsets bigger than DataFrame")
-    subsets = patients_dataframe.sample(n=subset_size)
+    subsets = dataframe_df.sample(n=subset_size)
     return subsets
 
 # %%
@@ -228,9 +228,12 @@ raw_dataset_number = total_numbers_dataset(patients_data)
 patients_dataset = get_dataset(patients_data)
 patients_dataframe = convert_to_pandas_dataframe(patients_dataset)
 
-# get subset, trainset, validation subset, test subset
-subset_dataframe = get_challenges_subsets(patients_dataframe)
-train_subset, validation_subset, test_subset = split_train_val_test(subset_dataframe)
+
+
+
+# export subset to Excel
+def export_subset_to_excel(df, filename):
+    df.to_excel(filename, index=False)
 
 # export subset to txt
 def export_subset_to_txt(df, filename):
@@ -239,12 +242,23 @@ def export_subset_to_txt(df, filename):
 
 # defination path   定义文件路径
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
+dataframe_path = os.path.join(desktop_path, "dataframe.xlsx")
 train_subset_path = os.path.join(desktop_path, "train_subset.txt")
 validation_subset_path = os.path.join(desktop_path, "validation_subset.txt")
 test_subset_path = os.path.join(desktop_path, "test_subset.txt")
 
 
 # export dataset to desltop  导出数据集
+#export_subset_to_excel(subset_dataframe, challenges_subset_path)
+export_subset_to_excel(patients_dataframe, dataframe_path)
+dataframe_df = pd.read_excel(dataframe_path)
+
+
+# get subset, trainset, validation subset, test subset
+subset_dataframe = get_challenges_subsets(dataframe_df)
+train_subset, validation_subset, test_subset = split_train_val_test(subset_dataframe)
+export_subset_to_excel(subset_dataframe, challenges_subset_path)
 export_subset_to_txt(train_subset, train_subset_path)
 export_subset_to_txt(validation_subset, validation_subset_path)
 export_subset_to_txt(test_subset, test_subset_path)
