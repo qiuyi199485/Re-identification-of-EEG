@@ -31,6 +31,9 @@ channels_le = ['EEG FP1-LE', 'EEG FP2-LE', 'EEG F7-LE', 'EEG F3-LE', 'EEG FZ-LE'
                'EEG A1-LE', 'EEG T3-LE', 'EEG C3-LE', 'EEG CZ-LE', 'EEG C4-LE', 'EEG T4-LE', 'EEG A2-LE',
                'EEG T5-LE', 'EEG P3-LE', 'EEG PZ-LE', 'EEG P4-LE', 'EEG T6-LE', 'EEG O1-LE', 'EEG O2-LE']
 
+# Create and set montage
+
+
 # Mapping to standard 10-20 channel names
 channel_mapping_ref = {
     'EEG FP1-REF': 'Fp1', 'EEG FP2-REF': 'Fp2', 'EEG F3-REF': 'F3', 'EEG F4-REF': 'F4',
@@ -110,31 +113,6 @@ def apply_autoreject(epochs_array, channels_standard, montage):
     epochs_clean = ar.fit_transform(epochs_mne)
     return epochs_clean
 
-def main():
-    # Define file paths
-    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-    challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
-    
-    # Load Excel file
-    df = load_excel_file(challenges_subset_path)
-    
-    # Process each EDF file
-    for i in range(min(3, len(df))):  # Ensure we only process up to 3 files
-        selected_row = df.iloc[i]
-        edf_path = selected_row['path_to_edf']
-        
-        raw = process_edf_file(edf_path)
-        start_sample = 120 * f_s
-        n_samples = 200 * f_s
-        normalized_data, times = extract_and_normalize_data(raw, start_sample, n_samples)
-        
-        segment_length = 4 * f_s
-        n_segments = 50
-        epochs_array = segment_data(normalized_data, segment_length, n_segments)
-        
-        epochs_clean = apply_autoreject(epochs_array, channels_standard, raw.get_montage())
-        
-        print(f"Processed file {i+1}: {edf_path}")
 
-if __name__ == "__main__":
-    main()
+
+
