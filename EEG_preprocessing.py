@@ -4,6 +4,7 @@ import sys
 import mne
 import numpy as np
 import pandas as pd
+from autoreject import AutoReject
 from statsmodels.tsa.ar_model import AutoReg
 from sklearn.preprocessing import MinMaxScaler
 from scipy.signal import welch
@@ -58,17 +59,18 @@ for i in range(min(10, len(df))):  # Ensure we only process up to 10 files
     # Extract data and times
     data, times = raw[:, :]
 
-    # Select first 600 seconds of data
+    # Select 50 Segments, each for 4 s; skip start 2 mins
+    segment_length = 4 * f_s
+    n_segments = 50
+    
     n_samples = f_s * 600
+    edf_end = f_s*360
     data = data[:, :n_samples]
     times = times[:n_samples]
 
     # Normalize the data for all channels
     normalized_data = np.array([normalize_data(data[ch]) for ch in range(data.shape[0])])
 
-    # Fit AR model for all channels
-    lags = 6  # Number of lags for AR model, can be tuned
-    ar_models = [fit_ar_model(normalized_data[ch], lags) for ch in range(normalized_data.shape[0])]
 
     
 
