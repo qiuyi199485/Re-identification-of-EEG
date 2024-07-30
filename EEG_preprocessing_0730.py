@@ -21,8 +21,8 @@ def normalize_data(data):
     return scaler.fit_transform(data.reshape(-1, 1)).flatten()
 
 # Channel sets
-channels_standard = ['FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8', 'A1', 'T3', 'C3',
-                     'CZ', 'C4', 'T4', 'A2', 'T5', 'P3', 'PZ', 'P4', 'T6', 'O1', 'O2']
+channels_standard = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'A1', 'T3', 'C3',
+                     'Cz', 'C4', 'T4', 'A2', 'T5', 'P3', 'Pz', 'P4', 'T6', 'O1', 'O2']
 
 
 channels_ref = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F7-REF', 'EEG F3-REF', 'EEG FZ-REF', 'EEG F4-REF', 'EEG F8-REF',
@@ -83,6 +83,8 @@ for i in range(min(3, len(df))):  # Ensure we only process up to 10 files
     # Set standard montage for channel positions
     montage = mne.channels.make_standard_montage('standard_1020')
     raw.set_montage(montage)
+    
+    print(f"Montage channels for file {i+1}: {montage.ch_names}")
 
     # Extract data and times
     data, times = raw[:, :]
@@ -96,12 +98,56 @@ for i in range(min(3, len(df))):  # Ensure we only process up to 10 files
     # Normalize the data for all channels
     normalized_data = np.array([normalize_data(data[ch]) for ch in range(data.shape[0])])
     
-    fig, axs = plt.subplots(len(channels_standard), 1, figsize=(15, 10), sharex=True)
-    fig.suptitle(f'EEG Data for {edf_path}')
-    for ch in range(len(channels_standard)):
-        axs[ch].plot(times, normalized_data[ch])
-        axs[ch].set_title(channels_standard[ch])
-        axs[ch].set_xlim([times[0], times[-1]])
-    plt.xlabel('Time (s)')
+    # Split the data into 50 segments, each 4 seconds long
+    segment_length = 4 * f_s
+    n_segments = 50
+
+    epochs = []
+    for seg_idx in range(n_segments):
+        start_idx = seg_idx * segment_length
+        end_idx = start_idx + segment_length
+        epoch = normalized_data[:, start_idx:end_idx]
+        epochs.append(epoch)
+
+    # Convert epochs to MNE Epochs object for Autoreject
+    epochs_array = np.array(epochs)
+    info = mne.create_info(channels_standard, f_s, ch_types='eeg')
+    epochs_mne = mne.EpochsArray(epochs_array, info)
+    epochs_mne.set_montage(montage)
+
+    # Use Autoreject to detect and repair artifacts
+    ar = AutoReject()
+    epochs_clean = ar.fit_transform(epochs_mne)
+
+    # Plot the cleaned data for the first epoch as an example
+    #plt.figure(figsize=(15, 10))
+    #for ch in range(epochs_clean.get_data().shape[1]):
+       # plt.plot(np.linspace(0, 4, segment_length), epochs_clean.get_data()[0, ch], label=info['ch_names'][ch])
+    #plt.title(f'Cleaned EEG Channels for File {i+1} - Segment 1')
+    #plt.xlabel('Time (s)')
+    #plt.ylabel('Normalized Amplitude')
+    #plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
+    #plt.show()
+
+
+#Plot cleaned EEG signal
+def plot_cleaned_eeg(epochs_clean):
+    n_channels, n_times = epochs_clean.get_data().shape[1:3]
+    fig, axes = plt.subplots(n_channels, 1, figsize=(15, 2 * n_channels), sharex=True)
+
+    for ch_idx in range(n_channels):
+        ax = axes[ch_idx] if n_channels > 1 else axes
+        ch_name = epochs_clean.ch_names[ch_idx]
+        data = epochs_clean.get_data()[:, ch_idx, :].flatten()
+        times = np.linspace(0, len(data) / f_s, len(data))
+        
+        ax.plot(times, data, label=f'Channel {ch_name}')
+        ax.set_ylabel('Amplitude (µV)')
+        ax.legend(loc='upper right')
+    
+    axes[-1].set_xlabel('Time (s)')
+    plt.tight_layout()
     plt.show()
 
+
+#plot_cleaned_eeg(epochs_clean)
