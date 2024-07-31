@@ -150,7 +150,7 @@ def get_dataset(subject_dic):
     S_1_T_n = 0
     Dataset_dic = {}
     subjects_id = subject_dic.keys()
-    for p_X in subjects_id:
+    for p_X in subjects_id:               ##遍历每一个subject
         sessions = []  # list with session ids                                 ## "PAT"这个病人的所有 session id like S001 S002 S003
                                                                 ##  ['s_001',             's_002',            's_003']          
         sessions_takes = [] # list with same order as sessions, at index of an session id there is an list with all takes in this session  类似矩阵 列是2002-02-02等 行是s_001_t_000,s_001_t_001,...
@@ -176,17 +176,23 @@ def get_dataset(subject_dic):
                       sessions_takes[session_index].append(token_id)
         # 1. deal :filter out the subjects with 1 session and 1 take in this session            
         if len(Add_Dataset) == 1:
-           S_1_T_1+=1  
+           S_1_T_1+=1
+           continue  
         # 2. deal with subjects with 1 session
-        elif len(sessions) == 1:                                                  
-           S_1_T_n+=1
+        if len(sessions) == 1:                                                  
+            S_1_T_n+=1
+            for i in range(len(Add_Dataset)):
+             #Add_Dataset[i][-1] = 1  # 修改新列值为1，标记只有一个Session的记录
+              Add_Dataset[i] = Add_Dataset[i] + (1,)
         # 3. deal with subjects with more than 1 sessions
         else:
- 
-         Dataset_dic[p_X] = Add_Dataset
+             for i in range(len(Add_Dataset)):
+              Add_Dataset[i] = Add_Dataset[i] + (2,) # 修改新列值为2，标记有2个及以上不同日期Session的记录
+        
+        Dataset_dic[p_X] = Add_Dataset
                  
-    #print('S_1_T_1=',S_1_T_1)
-    #print('S_1_T_n=',S_1_T_n)
+    print('S_1_T_1=',S_1_T_1)
+    print('S_1_T_n=',S_1_T_n)
     
     return Dataset_dic
         
@@ -198,9 +204,9 @@ def convert_to_pandas_dataframe(dataset_dict):
         subject_id = str(P_id)                                       # P_record
         P_record = dataset_dict[P_id] 
         for take in P_record:
-            session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta = take
-            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta])
-    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel' ,'edf_info'])
+            session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta, session_number = take
+            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta, session_number])
+    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel' ,'edf_info','session_number'])
     
     return df             
 
