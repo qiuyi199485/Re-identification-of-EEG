@@ -55,8 +55,7 @@ desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
 df = pd.read_excel(challenges_subset_path)
 
-# Process each EDF file
-for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
+for i in range(min(2, len(df))):  # Ensure we only process up to 10 files
     selected_row = df.iloc[i]
     edf_path = selected_row['path_to_edf']
     
@@ -66,88 +65,19 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
     if 'EEG FP1-REF' in channel_names:
         channels = channels_ref
         
-        raw.pick_channels(channels)
+        raw.pick_channels(channels)   # keep channel
         raw.rename_channels(channel_mapping_ref)
+        raw.reorder_channels(channels_standard)
         print(raw.ch_names)
     
     else:
         channels = channels_le
         raw.pick_channels(channels)
         raw.rename_channels(channel_mapping_le)
+        raw.reorder_channels(channels_standard)
         print(raw.ch_names)
-
-    
-    
-    raw.filter(f_min, f_max, fir_design='firwin', skip_by_annotation='edge')
-
-    # Set standard montage for channel positions
+        
     montage = mne.channels.make_standard_montage('standard_1020')
     raw.set_montage(montage)
     
-    print(f"Montage channels for file {i+1}: {montage.ch_names}")
-
-    # Extract data and times
-    data, times = raw[:, :]
-
-    # Select 200 seconds of data, skip the first 2 minutes (120 seconds)
-    start_sample = 120 * f_s
-    n_samples = 200 * f_s
-    data = data[:, start_sample:start_sample + n_samples]
-    times = times[start_sample:start_sample + n_samples]
-
-    # Normalize the data for all channels
-    normalized_data = np.array([normalize_data(data[ch]) for ch in range(data.shape[0])])
-    
-    # Split the data into 50 segments, each 4 seconds long
-    segment_length = 4 * f_s
-    n_segments = 50
-
-    epochs = []
-    for seg_idx in range(n_segments):
-        start_idx = seg_idx * segment_length
-        end_idx = start_idx + segment_length
-        epoch = normalized_data[:, start_idx:end_idx]
-        epochs.append(epoch)
-
-    # Convert epochs to MNE Epochs object for Autoreject
-    epochs_array = np.array(epochs)
-    info = mne.create_info(channels_standard, f_s, ch_types='eeg')
-    epochs_mne = mne.EpochsArray(epochs_array, info)
-    epochs_mne.set_montage(montage)
-
-    # Use Autoreject to detect and repair artifacts
-    ar = AutoReject()
-    epochs_clean = ar.fit_transform(epochs_mne)
-
-    # Plot the cleaned data for the first epoch as an example
-    #plt.figure(figsize=(15, 10))
-    #for ch in range(epochs_clean.get_data().shape[1]):
-       # plt.plot(np.linspace(0, 4, segment_length), epochs_clean.get_data()[0, ch], label=info['ch_names'][ch])
-    #plt.title(f'Cleaned EEG Channels for File {i+1} - Segment 1')
-    #plt.xlabel('Time (s)')
-    #plt.ylabel('Normalized Amplitude')
-    #plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
-    #plt.show()
-
-
-#Plot cleaned EEG signal
-def plot_cleaned_eeg(epochs_clean):
-    n_channels, n_times = epochs_clean.get_data().shape[1:3]
-    fig, axes = plt.subplots(n_channels, 1, figsize=(15, 2 * n_channels), sharex=True)
-
-    for ch_idx in range(n_channels):
-        ax = axes[ch_idx] if n_channels > 1 else axes
-        ch_name = epochs_clean.ch_names[ch_idx]
-        data = epochs_clean.get_data()[:, ch_idx, :].flatten()
-        times = np.linspace(0, len(data) / f_s, len(data))
-        
-        ax.plot(times, data, label=f'Channel {ch_name}')
-        ax.set_ylabel('Amplitude (µV)')
-        ax.legend(loc='upper right')
-    
-    axes[-1].set_xlabel('Time (s)')
-    plt.tight_layout()
-    plt.show()
-
-
-#plot_cleaned_eeg(epochs_clean)
+    print(f"Montage channels for file {i+1}: {montage.ch_names}")    
