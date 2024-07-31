@@ -195,7 +195,7 @@ def convert_to_pandas_dataframe(dataset_dict):
         for take in P_record:
             session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta = take
             convert_list.append([patient_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta])
-    df = pd.DataFrame(np.array(convert_list), columns=['patient_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel' ,'edf_info'])
+    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel' ,'edf_info'])
     
     return df             
 

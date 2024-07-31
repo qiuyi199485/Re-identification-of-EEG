@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from autoreject import AutoReject
+from scipy.signal import welch
+from scipy.stats import kurtosis, skew
+
 
 sys.path.insert(1, 'C:\\Users\\49152\\Documents\\GitHub\\Re-identification-of-EEG')
 import settings
@@ -68,12 +71,14 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
         
         raw.pick_channels(channels)
         raw.rename_channels(channel_mapping_ref)
+        raw.reorder_channels(channels_standard)
         print(raw.ch_names)
     
     else:
         channels = channels_le
         raw.pick_channels(channels)
         raw.rename_channels(channel_mapping_le)
+        raw.reorder_channels(channels_standard)
         print(raw.ch_names)
 
     
@@ -82,10 +87,8 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
 
     # Set standard montage for channel positions
     montage = mne.channels.make_standard_montage('standard_1020')
-    raw.set_montage(montage)
+    #raw.set_montage(montage)
     
-    print(f"Montage channels for file {i+1}: {montage.ch_names}")
-
     # Extract data and times
     data, times = raw[:, :]
 
@@ -128,6 +131,41 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
     #plt.ylabel('Normalized Amplitude')
     #plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
     #plt.show()
+    
+    
+    
+# 特征提取函数
+def extract_features(epochs, f_s):
+    features = []
+    for epoch in epochs:
+        epoch_features = []
+        for sub_segment in epoch:
+            
+            # Time Domain 
+            mean = np.mean(sub_segment)
+            median = np.median(sub_segment)
+            std = np.std(sub_segment)
+            rms = np.sqrt(np.mean(sub_segment**2))
+            kurt = kurtosis(sub_segment)
+            skewness = skew(sub_segment)
+            
+            
+            # Frequency Domain 
+            # Compute power spectral density (PSD)
+            freqs, psd = welch(sub_segment, fs=f_s)
+            
+            # Compute band power in delta (1-4 Hz), theta (4-8 Hz), alpha (8-13 Hz), beta (13-30 Hz) , and gama (30-100 Hz) bands
+            delta_bp = np.trapz(psd[(freqs >= 1) & (freqs < 4)])
+            theta_bp = np.trapz(psd[(freqs >= 4) & (freqs < 8)])
+            alpha_bp = np.trapz(psd[(freqs >= 8) & (freqs < 13)])
+            beta_bp = np.trapz(psd[(freqs >= 13) & (freqs < 30)])
+            gamma_bp = np.trapz(psd[(freqs >= 30) & (freqs < 100)])
+            
+            # Collect features for the channel
+            epoch_features.extend([mean, median, std, rms, skewness, kurt, delta_bp, theta_bp, alpha_bp, beta_bp, gamma_bp])
+        features.append(epoch_features)
+    return np.array(features)
+
 
 
 #Plot cleaned EEG signal
@@ -151,3 +189,6 @@ def plot_cleaned_eeg(epochs_clean):
 
 
 #plot_cleaned_eeg(epochs_clean)
+
+
+features = extract_features(epochs_clean.get_data(), f_s)

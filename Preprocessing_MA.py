@@ -76,7 +76,6 @@ def process_edf_file(edf_path):
     
     montage = mne.channels.make_standard_montage('standard_1020')
     raw.set_montage(montage)
-    print(f"Montage channels for file: {montage.ch_names}")
     return raw
 
 
