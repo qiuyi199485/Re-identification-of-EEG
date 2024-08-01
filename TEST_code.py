@@ -218,9 +218,9 @@ def get_dataset(subject_dic):
         max_session_id = max(sessions_search, key=lambda x: x[-1])[-1]
         for i in range(len(sessions_search)):
          if sessions_search[i][-1] == max_session_id:
-                sessions_search[i] = sessions_search[i] + ('Y',)
+                sessions_search[i] = sessions_search[i] + (1,)
          else:
-                sessions_search[i] = sessions_search[i] + ('N',)
+                sessions_search[i] = sessions_search[i] + (0,)
         
         Dataset_dic[p_X] = sessions_search
     
