@@ -237,16 +237,17 @@ def get_dataset(subject_dic):
         
         Dataset_dic[p_X] = sessions_search
     
+    # Find the first recording of each 'reidx_session_id=1'
     for p_X in Dataset_dic.keys():
      sessions_search = Dataset_dic[p_X]
-     found = False
+     found_first = False
      for i in range(len(sessions_search)):
-        # Check if the target sessions(ninth column) = '2' and first sessions of subject (reidx_session_id=tenth column) = '1'
-        if sessions_search[i][8] == 2 and sessions_search[i][9] == 1:
-            if not found:
+        # Check if the first sessions of subject (reidx_session_id=tenth column) = '1'
+        if sessions_search[i][9] == 1:
+            if not found_first:
                 # Set the new column to 1 for the first match/ first  recording as training input!
                 sessions_search[i] = sessions_search[i] + (1,)
-                found = True
+                found_first = True
             else:
                 # Set the new column to 0 for all other matches
                 sessions_search[i] = sessions_search[i] + (0,)
@@ -289,6 +290,19 @@ def split_train_val_test(df):
 
 def get_challenges_subsets(dataframe_df, subset_size=5):
     
+    # filter by 'first_recording' = 1 and with 2 sessions
+    filtered_df = dataframe_df[(dataframe_df['first_recording'] == 1) & (dataframe_df['session_number']==2)]
+    # Check the amount of recording
+    total_rows = len(filtered_df)
+    if total_rows < subset_size:
+        raise ValueError("Not enough recordings for the challenges subset.")
+    subsets = filtered_df.sample(n=subset_size)
+    
+    return subsets
+
+# challenges_subsets include the subject with 1 session
+def get_challenges_subsets_op2(dataframe_df, subset_size=5):
+    
     # filter by 'first_recording' = 1 
     filtered_df = dataframe_df[dataframe_df['first_recording'] == 1]
     # Check the amount of recording
@@ -298,8 +312,6 @@ def get_challenges_subsets(dataframe_df, subset_size=5):
     subsets = filtered_df.sample(n=subset_size)
     
     return subsets
-
-
 # %%
 
 path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\'
