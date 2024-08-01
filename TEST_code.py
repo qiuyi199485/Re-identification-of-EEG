@@ -32,13 +32,14 @@ def test_edf_corrupted_info(path_to_edf):                      ##check if xx.edf
             stim_channel=None)
         edf_info = f.info 
         edf_time = int(f.times[-1]) 
-        edf_ch_names = f.info['ch_names']## edf可以用mne读出来就是 edf_info=edf所有metadat   
+        edf_ch_names = f.info['ch_names']## edf可以用mne读出来就是 edf_info=edf所有metadat
+        edf_sfreq = f.info['sfreq']   
         del f
     except:                                                     ## error
         print('Import error on file: ' +  path_to_edf)
         edf_corrupted = True
         
-    return (edf_corrupted, edf_info, edf_time, edf_ch_names)
+    return (edf_corrupted, edf_info, edf_time, edf_ch_names, edf_sfreq)
 
 
 #%% Definitions
@@ -84,16 +85,16 @@ def get_subjects(path):                                                         
              ])
     
                 
-            corrupted, edf_info, edf_time, edf_chan = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
+            corrupted, edf_info, edf_time, edf_chan, edf_sfreq = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
             channels_set = set(edf_chan)
             
             
             if (required_channels_1.issubset(channels_set) or required_channels_2.issubset(channels_set)):
              if not corrupted:
                 if subject_id in subjects:                               # 添加到subject字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    subjects[subject_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_info ))
+                    subjects[subject_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq,edf_info ))
                 else:                                                    # 新病人 ，新建病例
-                    subjects[subject_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan, edf_info)]
+                    subjects[subject_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq, edf_info)]
             
     total_numbers_dataset(subjects)        
 
@@ -107,7 +108,7 @@ def total_numbers_dataset(subjects):                   # 打印出关于这个�
     #b=0
     for subject_id in subjects.keys():                 # 一共会诊几次     subject_id='aaaaaaxx'
         sessions = []
-        for (session_id, _ ,_, _, _, _,_ ) in subjects[subject_id]:     # 只考虑这个subjects[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
+        for (session_id, _ ,_, _, _,_, _,_ ) in subjects[subject_id]:     # 只考虑这个subjects[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
             if session_id not in sessions:
                 sessions.append(session_id)
                 #print(sessions)
@@ -132,7 +133,7 @@ def seperate_session_subject(subject, session_id):             #通过S_00X_2002
     subject_without_session = []
     
     for P_X in subject:                                       # s_001
-        session_id_1 , _ ,_ , _, _, _,_ = P_X
+        session_id_1 , _ ,_ , _, _, _,_,_ = P_X
         if session_id_1 == session_id:
             subject_session.append(P_X)
         else:
@@ -161,7 +162,7 @@ def get_dataset(subject_dic):
         Add_Dataset = []
         
         for Pat_X in subject_dic[p_X]:                                 # 相当于 p_X 这个病人的所有.edf,一个一个循环[_,_,_,_,_,_,_]
-                s_id, token_id, test_time, sessions_date,_, _ ,_= Pat_X
+                s_id, token_id, test_time, sessions_date,_, _,_ ,_= Pat_X
                 # filter out the edf_time less than 10 mins
                 if int(test_time)> 600:
                     if sessions_date not in sessions_date_test:
@@ -190,6 +191,39 @@ def get_dataset(subject_dic):
               Add_Dataset[i] = Add_Dataset[i] + (2,) # 修改新列值为2，标记有2个及以上不同日期Session的记录
         
         Dataset_dic[p_X] = Add_Dataset
+    
+    
+    # Add additional inforamtion for filter from 'Dataset_dic'
+    # ADD re-identification session number; reidx_session_id
+    for p_X in Dataset_dic.keys():
+        sessions = Dataset_dic[p_X]
+        sorted_sessions = sorted(sessions, key=lambda x: x[0])  # Sort by session_id
+        session_id_dic = {}
+        current_id = 1
+        for i in range(len(sorted_sessions)):
+            session_id = sorted_sessions[i][0]
+            if session_id not in session_id_dic:
+                session_id_dic[session_id] = current_id
+                current_id += 1
+            sorted_sessions[i] = sorted_sessions[i] + (session_id_dic[session_id],)
+        
+        Dataset_dic[p_X] = sorted_sessions
+        
+        # Identify the last sessions of each subject and add 'Y'
+    for p_X in Dataset_dic.keys():
+        sessions_search = Dataset_dic[p_X]
+    # Find the largest/last reidx_session_id
+        if not sessions_search:            # Check if sessions[] are empty
+            continue
+        max_session_id = max(sessions_search, key=lambda x: x[-1])[-1]
+        for i in range(len(sessions_search)):
+         if sessions_search[i][-1] == max_session_id:
+                sessions_search[i] = sessions_search[i] + ('Y',)
+         else:
+                sessions_search[i] = sessions_search[i] + ('N',)
+        
+        Dataset_dic[p_X] = sessions_search
+    
                  
     print('S_1_T_1=',S_1_T_1)
     print('S_1_T_n=',S_1_T_n)
@@ -204,9 +238,9 @@ def convert_to_pandas_dataframe(dataset_dict):
         subject_id = str(P_id)                                       # P_record
         P_record = dataset_dict[P_id] 
         for take in P_record:
-            session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta, session_number = take
-            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, info_meta, session_number])
-    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel' ,'edf_info','session_number'])
+            session_id, take_id, session_time,session_date,path_to_edf, channel_edf,edf_sfreq, info_meta, session_number,reidx_session_id,last_s = take
+            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, edf_sfreq,info_meta, session_number, reidx_session_id,last_s])
+    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel', 'edf_sample_freq','edf_info','session_number','reidx_session_id','last_session'])
     
     return df             
 
