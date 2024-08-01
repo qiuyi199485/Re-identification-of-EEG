@@ -191,8 +191,8 @@ def get_dataset(subject_dic):
                  Add_Dataset[i] = Add_Dataset[i] + (1,) # value '1' means:Subject has 2 or more Sessions but in same date
              else:  
               for i in range(len(Add_Dataset)):  
-                 Add_Dataset[i] = Add_Dataset[i] + (2,) # value '1' means:Subject has 2 or more Sessions and in diff dates
-        
+                 Add_Dataset[i] = Add_Dataset[i] + (2,) # value '2' means:Subject has 2 or more Sessions and in diff dates
+                                                        # value '2' means: sessions for re-identification / target session
         Dataset_dic[p_X] = Add_Dataset
     
     
@@ -237,12 +237,32 @@ def get_dataset(subject_dic):
         
         Dataset_dic[p_X] = sessions_search
     
-                 
+    for p_X in Dataset_dic.keys():
+     sessions_search = Dataset_dic[p_X]
+     found = False
+     for i in range(len(sessions_search)):
+        # Check if the target sessions(ninth column) = '2' and first sessions of subject (reidx_session_id=tenth column) = '1'
+        if sessions_search[i][8] == 2 and sessions_search[i][9] == 1:
+            if not found:
+                # Set the new column to 1 for the first match/ first  recording as training input!
+                sessions_search[i] = sessions_search[i] + (1,)
+                found = True
+            else:
+                # Set the new column to 0 for all other matches
+                sessions_search[i] = sessions_search[i] + (0,)
+        else:
+            # Set the new column to 0 for all non-matching rows
+            sessions_search[i] = sessions_search[i] + (0,)
+
+     Dataset_dic[p_X] = sessions_search
+                
     print('S_1_T_1=',S_1_T_1)
     print('S_1_T_n=',S_1_T_n)
     
     return Dataset_dic
-        
+ 
+ 
+# Dic to dataframe        
 def convert_to_pandas_dataframe(dataset_dict):
     # subjects_dataframe
     convert_list = []
@@ -251,9 +271,9 @@ def convert_to_pandas_dataframe(dataset_dict):
         subject_id = str(P_id)                                       # P_record
         P_record = dataset_dict[P_id] 
         for take in P_record:
-            session_id, take_id, session_time,session_date,path_to_edf, channel_edf,edf_sfreq, info_meta, session_number,reidx_session_id,last_s = take
-            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, edf_sfreq,info_meta, session_number, reidx_session_id,last_s])
-    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel', 'edf_sample_freq','edf_info','session_number','reidx_session_id','last_session'])
+            session_id, take_id, session_time,session_date,path_to_edf, channel_edf,edf_sfreq, info_meta, session_number,reidx_session_id,last_s,first_t = take
+            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, edf_sfreq,info_meta, session_number, reidx_session_id,last_s,first_t])
+    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel', 'edf_sample_freq','edf_info','session_number','reidx_session_id','last_session','first_recording'])
     
     return df             
 
@@ -264,19 +284,21 @@ def split_train_val_test(df):
     temp_df = df.drop(train_df.index)
     #val_df = temp_df.sample(frac=0.5, random_state=1)
     test_df = temp_df.drop(temp_df.index)
-    
-    #print(f"Training set size: {len(train_df)}")
-    #print(f"Validation set size: {len(val_df)}")
-    #print(f"Test set size: {len(test_df)}")
-    
+  
     return train_df,  test_df
 
-def get_challenges_subsets(dataframe_df, subset_size=50, number_subsets=1):
-    total_rows = len(dataframe_df)
+def get_challenges_subsets(dataframe_df, subset_size=5):
+    
+    # filter by 'first_recording' = 1 
+    filtered_df = dataframe_df[dataframe_df['first_recording'] == 1]
+    # Check the amount of recording
+    total_rows = len(filtered_df)
     if total_rows < subset_size:
-        raise ValueError("challenges_subsets bigger than DataFrame")
-    subsets = dataframe_df.sample(n=subset_size)
+        raise ValueError("Not enough recordings for the challenges subset.")
+    subsets = filtered_df.sample(n=subset_size)
+    
     return subsets
+
 
 # %%
 
@@ -292,10 +314,6 @@ subjects_dataframe = convert_to_pandas_dataframe(subjects_dataset)
 # export subset to Excel
 def export_subset_to_excel(df, filename):
     df.to_excel(filename, index=False)
-
-# export subset to txt
-#def export_subset_to_txt(df, filename):
-    #df.to_csv(filename, sep='\t', index=False)
 
 
 # defination path   定义文件路径
@@ -321,4 +339,5 @@ train_subset, test_subset = split_train_val_test(subset_dataframe)
 export_subset_to_excel(subset_dataframe, challenges_subset_path)
 export_subset_to_excel(train_subset, train_subset_path)
 export_subset_to_excel(test_subset, test_subset_path)
+
 
