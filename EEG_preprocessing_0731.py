@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import os
+import settings
 import sys
 import mne
 import numpy as np
@@ -8,55 +9,24 @@ from sklearn.preprocessing import MinMaxScaler
 from autoreject import AutoReject
 from scipy.signal import welch
 from scipy.stats import kurtosis, skew
+sys.path.insert( 1,'C:\\Users\\49152\\Documents\\GitHub\\Re-identification-of-EEG')                              # 允许脚本导入一个特定路径下的自定义Python脚本，例如settings模块和tools模块里的函数。
+#sys.path.insert(1, 'C:\\Users\\49152\\Desktop\\MA\\Code')       
+from settings import channels_standard, channels_ref, channels_le, channel_mapping_ref, channel_mapping_le
+from settings import f_s, f_min, f_max
 
-
-sys.path.insert(1, 'C:\\Users\\49152\\Documents\\GitHub\\Re-identification-of-EEG')
-import settings
-
-# Settings
-f_s = 250
-f_min = 1
-f_max = 40
 
 # Function to normalize the data
 def normalize_data(data):
     scaler = MinMaxScaler()
     return scaler.fit_transform(data.reshape(-1, 1)).flatten()
 
-# Channel sets
-channels_standard = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'A1', 'T3', 'C3',
-                     'Cz', 'C4', 'T4', 'A2', 'T5', 'P3', 'Pz', 'P4', 'T6', 'O1', 'O2']
-
-
-channels_ref = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F7-REF', 'EEG F3-REF', 'EEG FZ-REF', 'EEG F4-REF', 'EEG F8-REF',
-                'EEG A1-REF', 'EEG T3-REF', 'EEG C3-REF', 'EEG CZ-REF', 'EEG C4-REF', 'EEG T4-REF', 'EEG A2-REF',
-                'EEG T5-REF', 'EEG P3-REF', 'EEG PZ-REF', 'EEG P4-REF', 'EEG T6-REF', 'EEG O1-REF', 'EEG O2-REF']
-
-channels_le = ['EEG FP1-LE', 'EEG FP2-LE', 'EEG F7-LE', 'EEG F3-LE', 'EEG FZ-LE', 'EEG F4-LE', 'EEG F8-LE',
-               'EEG A1-LE', 'EEG T3-LE', 'EEG C3-LE', 'EEG CZ-LE', 'EEG C4-LE', 'EEG T4-LE', 'EEG A2-LE',
-               'EEG T5-LE', 'EEG P3-LE', 'EEG PZ-LE', 'EEG P4-LE', 'EEG T6-LE', 'EEG O1-LE', 'EEG O2-LE']
-
-# Mapping to standard 10-20 channel names
-channel_mapping_ref = {
-    'EEG FP1-REF': 'Fp1', 'EEG FP2-REF': 'Fp2', 'EEG F3-REF': 'F3', 'EEG F4-REF': 'F4',
-    'EEG C3-REF': 'C3', 'EEG C4-REF': 'C4', 'EEG P3-REF': 'P3', 'EEG P4-REF': 'P4',
-    'EEG O1-REF': 'O1', 'EEG O2-REF': 'O2', 'EEG F7-REF': 'F7', 'EEG F8-REF': 'F8',
-    'EEG T3-REF': 'T3', 'EEG T4-REF': 'T4', 'EEG T5-REF': 'T5', 'EEG T6-REF': 'T6',
-    'EEG A1-REF': 'A1', 'EEG A2-REF': 'A2', 'EEG FZ-REF': 'Fz', 'EEG CZ-REF': 'Cz',
-    'EEG PZ-REF': 'Pz'}
-
-channel_mapping_le = {
-    'EEG FP1-LE': 'Fp1', 'EEG FP2-LE': 'Fp2', 'EEG F3-LE': 'F3',
-    'EEG F4-LE': 'F4', 'EEG C3-LE': 'C3', 'EEG C4-LE': 'C4', 'EEG P3-LE': 'P3',
-    'EEG P4-LE': 'P4', 'EEG O1-LE': 'O1', 'EEG O2-LE': 'O2', 'EEG F7-LE': 'F7',
-    'EEG F8-LE': 'F8', 'EEG T3-LE': 'T3', 'EEG T4-LE': 'T4', 'EEG T5-LE': 'T5',
-    'EEG T6-LE': 'T6', 'EEG A1-LE': 'A1', 'EEG A2-LE': 'A2', 'EEG FZ-LE': 'Fz',
-    'EEG CZ-LE': 'Cz', 'EEG PZ-LE': 'Pz'
-}
 # Read the Excel file
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
 df = pd.read_excel(challenges_subset_path)
+
+# Save all epochs
+all_epochs_clean = []
 
 # Process each EDF file
 for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
@@ -121,6 +91,9 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
     # Use Autoreject to detect and repair artifacts
     ar = AutoReject()
     epochs_clean = ar.fit_transform(epochs_mne)
+    
+    # Save all cleaned EEG
+    all_epochs_clean.append(epochs_clean)
 
     # Plot the cleaned data for the first epoch as an example
     #plt.figure(figsize=(15, 10))
@@ -134,18 +107,22 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
     
     
     
-# 特征提取函数
-def extract_features(epochs, f_s):
+# Features extraction
+def extract_features(epochs_all, f_s):
+    n_files = len(epochs_all)
+    n_channels = epochs_all[0].get_data(copy=True).shape[1]
+    n_features = 11 
+    #n_epochs = epochs.shape[0]
+    all_features = np.zeros((n_channels, n_features, n_files))  # initialization of 21x11xn 特征矩阵
     
-    n_channels = epochs.shape[1]
-    n_epochs = epochs.shape[0]
-    features = np.zeros((n_channels, 11))  # 初始化21x11特征矩阵
+    for file_idx, epochs in enumerate(epochs_all):
+        n_epochs = epochs.get_data(copy=True).shape[0]
+        features = np.zeros((n_channels, n_features))
     
-    
-    for ch_idx in range(n_channels):
-        channel_features = []
-        for epoch_idx in range(n_epochs):
-            sub_segment = epochs[epoch_idx, ch_idx, :]
+        for ch_idx in range(n_channels):
+          channel_features = []
+          for epoch_idx in range(n_epochs):
+            sub_segment = epochs.get_data(copy=True)[epoch_idx, ch_idx, :]
             
             # Time Domain 
             mean = np.mean(sub_segment)
@@ -172,7 +149,10 @@ def extract_features(epochs, f_s):
             channel_features.append(epoch_features)
       
         features[ch_idx] = np.mean(channel_features, axis=0)
-    return features 
+     
+    all_features[:, :, file_idx] = features
+    
+    return all_features 
 
 
 
@@ -198,5 +178,4 @@ def plot_cleaned_eeg(epochs_clean):
 
 #plot_cleaned_eeg(epochs_clean)
 
-
-features = extract_features(epochs_clean.get_data(), f_s)
+features = extract_features(all_epochs_clean, f_s)
