@@ -25,13 +25,15 @@ desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
 df = pd.read_excel(challenges_subset_path)
 
-# Save all epochs
+# Initialization
 all_epochs_clean = []
+label = []
 
 # Process each EDF file
-for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
+for i in range(min(3, len(df))):  # Ensure we only process up to 10 files
     selected_row = df.iloc[i]
     edf_path = selected_row['path_to_edf']
+    subject_id = selected_row['subject_id']
     
     # Determine the appropriate channel set based on the EDF file
     raw = mne.io.read_raw_edf(edf_path, preload=True)
@@ -94,6 +96,9 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
     
     # Save all cleaned EEG
     all_epochs_clean.append(epochs_clean)
+    
+    # Subject id as label for training
+    label.append(subject_id)
 
     # Plot the cleaned data for the first epoch as an example
     #plt.figure(figsize=(15, 10))
@@ -110,47 +115,46 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
 # Features extraction
 def extract_features(epochs_all, f_s):
     n_files = len(epochs_all)
-    n_channels = epochs_all[0].get_data(copy=True).shape[1]
+    n_channels = epochs_all[0].get_data(copy=False).shape[1]
     n_features = 11 
     #n_epochs = epochs.shape[0]
-    all_features = np.zeros((n_channels, n_features, n_files))  # initialization of 21x11xn 特征矩阵
+    all_features = np.zeros((n_channels, n_features, n_files))
     
     for file_idx, epochs in enumerate(epochs_all):
-        n_epochs = epochs.get_data(copy=True).shape[0]
+        n_epochs = epochs.get_data().shape[0]
         features = np.zeros((n_channels, n_features))
-    
+        
         for ch_idx in range(n_channels):
-          channel_features = []
-          for epoch_idx in range(n_epochs):
-            sub_segment = epochs.get_data(copy=True)[epoch_idx, ch_idx, :]
+            channel_features = []
+            for epoch_idx in range(n_epochs):
+                sub_segment = epochs.get_data(copy=False)[epoch_idx, ch_idx, :]
+                
+                # Time Domain 
+                mean = np.mean(sub_segment)
+                median = np.median(sub_segment)
+                std = np.std(sub_segment)
+                rms = np.sqrt(np.mean(sub_segment**2))
+                kurt = kurtosis(sub_segment)
+                skewness = skew(sub_segment)
+                
+                # Frequency Domain 
+                # Compute power spectral density (PSD)
+                freqs, psd = welch(sub_segment, fs=f_s)
+                
+                # Compute band power in delta (1-4 Hz), theta (4-8 Hz), alpha (8-13 Hz), beta (13-30 Hz), gamma (30-100 Hz)
+                delta_bp = np.trapz(psd[(freqs >= 1) & (freqs < 4)])
+                theta_bp = np.trapz(psd[(freqs >= 4) & (freqs < 8)])
+                alpha_bp = np.trapz(psd[(freqs >= 8) & (freqs < 13)])
+                beta_bp = np.trapz(psd[(freqs >= 13) & (freqs < 30)])
+                gamma_bp = np.trapz(psd[(freqs >= 30) & (freqs < 100)])
+                
+                # Collect features from the channel
+                epoch_features = ([mean, median, std, rms, skewness, kurt, delta_bp, theta_bp, alpha_bp, beta_bp, gamma_bp])
+                channel_features.append(epoch_features)
             
-            # Time Domain 
-            mean = np.mean(sub_segment)
-            median = np.median(sub_segment)
-            std = np.std(sub_segment)
-            rms = np.sqrt(np.mean(sub_segment**2))
-            kurt = kurtosis(sub_segment)
-            skewness = skew(sub_segment)
-            
-            
-            # Frequency Domain 
-            # Compute power spectral density (PSD)
-            freqs, psd = welch(sub_segment, fs=f_s)
-            
-            # Compute band power in delta (1-4 Hz), theta (4-8 Hz), alpha (8-13 Hz), beta (13-30 Hz) , and gama (30-100 Hz) bands
-            delta_bp = np.trapz(psd[(freqs >= 1) & (freqs < 4)])
-            theta_bp = np.trapz(psd[(freqs >= 4) & (freqs < 8)])
-            alpha_bp = np.trapz(psd[(freqs >= 8) & (freqs < 13)])
-            beta_bp = np.trapz(psd[(freqs >= 13) & (freqs < 30)])
-            gamma_bp = np.trapz(psd[(freqs >= 30) & (freqs < 100)])
-            
-            # Collect features for the channel
-            epoch_features = ([mean, median, std, rms, skewness, kurt, delta_bp, theta_bp, alpha_bp, beta_bp, gamma_bp])
-            channel_features.append(epoch_features)
-      
-        features[ch_idx] = np.mean(channel_features, axis=0)
-     
-    all_features[:, :, file_idx] = features
+            features[ch_idx] = np.mean(channel_features, axis=0)
+        
+        all_features[:, :, file_idx] = features
     
     return all_features 
 
