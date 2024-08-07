@@ -308,7 +308,7 @@ def split_train_val_test(df):
   
     return train_df,  test_df
 
-def get_challenges_subsets(dataframe_df, subset_size=30):
+def get_challenges_subsets(dataframe_df, subset_size=20):
     
     # filter by 'first_recording' = 1 and with 2 sessions
     filtered_df = dataframe_df[(dataframe_df['first_recording'] == 1) & (dataframe_df['session_number']==2)]
