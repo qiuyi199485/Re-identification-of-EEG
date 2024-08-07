@@ -38,8 +38,28 @@ def test_edf_corrupted_info(path_to_edf):                      ##check if xx.edf
     except:                                                     ## error
         print('Import error on file: ' +  path_to_edf)
         edf_corrupted = True
-        
-    return (edf_corrupted, edf_info, edf_time, edf_ch_names, edf_sfreq)
+    
+    
+    # Open edf as plain text to get attributes from header
+    with open(path_to_edf, 'rb') as h:
+       header = h.read(123).decode('utf-8')
+    # Modify header to get attributes
+    modified_header = header.split(' ')
+    sex_str = modified_header[8]
+    if sex_str in ['F', 'f']:
+     sex ='f'
+    elif sex_str in ['M', 'm']:
+     sex = 'm'
+    else:
+     sex = 'x'
+            
+    age_str = modified_header[11][4:]
+    if age_str.isdigit():
+     age = int(age_str)
+    else: # missing/wrong value
+     age = -1    
+    
+    return (edf_corrupted, edf_info, edf_time, edf_ch_names, edf_sfreq,sex, age)
 
 
 #%% Definitions
@@ -85,16 +105,16 @@ def get_subjects(path):                                                         
              ])
     
                 
-            corrupted, edf_info, edf_time, edf_chan, edf_sfreq = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
+            corrupted, edf_info, edf_time, edf_chan, edf_sfreq, sex, age = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
             channels_set = set(edf_chan)
             
             
             if (required_channels_1.issubset(channels_set) or required_channels_2.issubset(channels_set)):
              if not corrupted:
                 if subject_id in subjects:                               # 添加到subject字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    subjects[subject_id].append(('s_' + session_id, 't_' + take_id, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq,edf_info ))
+                    subjects[subject_id].append(('s_' + session_id, 't_' + take_id, sex, age, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq,edf_info ))
                 else:                                                    # 新病人 ，新建病例
-                    subjects[subject_id] = [('s_' + session_id, 't_' + take_id,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq, edf_info)]
+                    subjects[subject_id] = [('s_' + session_id, 't_' + take_id,sex, age,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq, edf_info)]
             
     total_numbers_dataset(subjects)        
 
@@ -108,7 +128,7 @@ def total_numbers_dataset(subjects):                   # 打印出关于这个�
     #b=0
     for subject_id in subjects.keys():                 # 一共会诊几次     subject_id='aaaaaaxx'
         sessions = []
-        for (session_id, _ ,_, _, _,_, _,_ ) in subjects[subject_id]:     # 只考虑这个subjects[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
+        for (session_id, _ ,_,_ ,_, _, _,_, _,_ ) in subjects[subject_id]:     # 只考虑这个subjects[aaaaaaxx]中的第一位日期，用session_id代指, 即S_001_2002-01-01，也就是这一天做过几次Session（其实日期可能是某一年，不是具体到某一天）
             if session_id not in sessions:
                 sessions.append(session_id)
                 #print(sessions)
@@ -133,7 +153,7 @@ def seperate_session_subject(subject, session_id):             #通过S_00X_2002
     subject_without_session = []
     
     for P_X in subject:                                       # s_001
-        session_id_1 , _ ,_ , _, _, _,_,_ = P_X
+        session_id_1 , _ ,_ ,_,_ , _, _, _,_,_ = P_X
         if session_id_1 == session_id:
             subject_session.append(P_X)
         else:
@@ -162,7 +182,7 @@ def get_dataset(subject_dic):
         Add_Dataset = []
         
         for Pat_X in subject_dic[p_X]:                                 # 相当于 p_X 这个病人的所有.edf,一个一个循环[_,_,_,_,_,_,_]
-                s_id, token_id, test_time, sessions_date,_, _,_ ,_= Pat_X
+                s_id, token_id, _ ,_,test_time, sessions_date,_, _,_ ,_= Pat_X
                 # filter out the edf_time less than 10 mins
                 if int(test_time)> 600:
                 
@@ -207,7 +227,7 @@ def get_dataset(subject_dic):
 
         for i in range(len(sorted_sessions)):
          session_id = sorted_sessions[i][0]
-         session_date = sorted_sessions[i][3]
+         session_date = sorted_sessions[i][5]
          # Sessions with the same date!! are set to the same number
          if session_id not in session_id_dic:
              if prev_session_date is not None and session_date == prev_session_date:
@@ -243,7 +263,7 @@ def get_dataset(subject_dic):
      found_first = False
      for i in range(len(sessions_search)):
         # Check if the first sessions of subject (reidx_session_id=tenth column) = '1'
-        if sessions_search[i][9] == 1:
+        if sessions_search[i][11] == 1:
             if not found_first:
                 # Set the new column to 1 for the first match/ first  recording as training input!
                 sessions_search[i] = sessions_search[i] + (1,)
@@ -272,9 +292,9 @@ def convert_to_pandas_dataframe(dataset_dict):
         subject_id = str(P_id)                                       # P_record
         P_record = dataset_dict[P_id] 
         for take in P_record:
-            session_id, take_id, session_time,session_date,path_to_edf, channel_edf,edf_sfreq, info_meta, session_number,reidx_session_id,last_s,first_t = take
-            convert_list.append([subject_id, session_id, take_id, session_time,session_date,path_to_edf, channel_edf, edf_sfreq,info_meta, session_number, reidx_session_id,last_s,first_t])
-    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id', 'edf_time','session_date','path_to_edf','edf_channel', 'edf_sample_freq','edf_info','session_number','reidx_session_id','last_session','first_recording'])
+            session_id, take_id, sex, age, session_time,session_date,path_to_edf, channel_edf,edf_sfreq, info_meta, session_number,reidx_session_id,last_s,first_t = take
+            convert_list.append([subject_id, session_id, take_id, sex, age, session_time,session_date,path_to_edf, channel_edf, edf_sfreq,info_meta, session_number, reidx_session_id,last_s,first_t])
+    df = pd.DataFrame(np.array(convert_list), columns=['subject_id', 'session_id', 'token_id','sex', 'age ','edf_time','session_date','path_to_edf','edf_channel', 'edf_sample_freq','edf_info','session_number','reidx_session_id','last_session','first_recording'])
     
     return df             
 
@@ -345,11 +365,9 @@ dataframe_df = pd.read_excel(dataframe_path)
 
 # get subset, trainset, validation subset, test subset
 subset_dataframe = get_challenges_subsets(dataframe_df)
-train_subset, test_subset = split_train_val_test(subset_dataframe)
+#train_subset, test_subset = split_train_val_test(subset_dataframe)
 
 
 export_subset_to_excel(subset_dataframe, challenges_subset_path)
-export_subset_to_excel(train_subset, train_subset_path)
-export_subset_to_excel(test_subset, test_subset_path)
-
-
+#export_subset_to_excel(train_subset, train_subset_path)
+#export_subset_to_excel(test_subset, test_subset_path)

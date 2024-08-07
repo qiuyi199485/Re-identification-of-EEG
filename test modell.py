@@ -213,3 +213,30 @@ report = classification_report(y_test, y_pred)
 print(f'Accuracy: {accuracy:.2f}')
 print('Classification Report:')
 print(report)
+
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+from sklearn.metrics import confusion_matrix, classification_report, ConfusionMatrixDisplay
+
+# 交叉验证
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+cross_val_scores = cross_val_score(clf, features, labels, cv=skf)
+print("Cross-validation scores:", cross_val_scores)
+print("Mean cross-validation score:", np.mean(cross_val_scores))
+
+# 混淆矩阵
+y_pred = clf.predict(X_test)
+conf_matrix = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=conf_matrix, display_labels=clf.classes_)
+disp.plot(cmap=plt.cm.Blues)
+plt.show()
+
+# 特征重要性（假设你使用的是树模型，如随机森林）
+if hasattr(clf, "feature_importances_"):
+    importances = clf.feature_importances_
+    indices = np.argsort(importances)[::-1]
+    plt.figure()
+    plt.title("Feature importances")
+    plt.bar(range(X_train.shape[1]), importances[indices], color="r", align="center")
+    plt.xticks(range(X_train.shape[1]), indices)
+    plt.xlim([-1, X_train.shape[1]])
+    plt.show()
