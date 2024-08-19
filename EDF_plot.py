@@ -28,7 +28,7 @@ df = pd.read_excel(challenges_subset_path)
 selected_row = df.iloc[0]  # Change the index to select a different row
 
 # Get the path to the EDF file
-edf_path = selected_row['path_to_edf']
+edf_path = 'E:\\2024.8.11\\归档\\aaaaauqu_s001_t000.edf'
 
 # Read the EDF file
 raw = mne.io.read_raw_edf(edf_path, preload=True)

@@ -222,7 +222,7 @@ def get_challenges_subsets(dataframe_df, subset_size=50, number_subsets=1):
 
 # %%
 
-path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\'
+path_to_edf_files = 'E:\\2024.8.11\\$$$文件夹13545635841\\'
 patients_data = get_patients(path_to_edf_files)
 raw_dataset_number = total_numbers_dataset(patients_data)
 patients_dataset = get_dataset(patients_data)
