@@ -23,13 +23,14 @@ def normalize_data(data):
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
 df = pd.read_excel(challenges_subset_path)
-
+challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
+df = pd.read_excel(challenges_subset_path)
 # Initialization
 all_epochs_clean = []
 label = []
 
 # Process each EDF file
-for i in range(min(3, len(df))):  # Ensure we only process up to 10 files
+for i in range(min(20, len(df))):  # Ensure we only process up to 10 files
     selected_row = df.iloc[i]
     edf_path = selected_row['path_to_edf']
     subject_id = selected_row['subject_id']

@@ -23,8 +23,8 @@ def normalize_data(data):
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
 val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
-df = pd.read_excel(challenges_subset_path)
-#df = pd.read_excel(val_test_subset_path)
+#df = pd.read_excel(challenges_subset_path)
+df = pd.read_excel(val_test_subset_path)
 
 # Initialization
 all_epochs_clean = []
@@ -107,13 +107,13 @@ for i in range(min(20, len(df))):  # Ensure we only process up to 10 files
 
 
 # Create a new folder on the desktop to save the output files
-output_folder = os.path.join(desktop_path, "EEG_Cleaned_Epochs_train")
+output_folder = os.path.join(desktop_path, "EEG_Cleaned_Epochs_val_test")
 os.makedirs(output_folder, exist_ok=True)
 
 
 # Save the cleaned epochs to the new folder
 for i, epochs in enumerate(all_epochs_clean):
-    filename = os.path.join(output_folder, f'subject_{i+1}_epochs_clean.fif')
+    filename = os.path.join(output_folder, f'subject_{i+1}_epochs_val_test.fif')
     epochs.save(filename, overwrite=True)
     
 

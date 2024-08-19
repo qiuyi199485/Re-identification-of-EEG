@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import os
-import settings
 import sys
 import mne
 import numpy as np
@@ -22,16 +21,14 @@ def normalize_data(data):
 # Read the Excel file
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
-val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
 df = pd.read_excel(challenges_subset_path)
-#df = pd.read_excel(val_test_subset_path)
 
 # Initialization
-all_epochs_clean = []
-label = []
+all_epochs_data = []
+all_epochs_labels = []
 
 # Process each EDF file
-for i in range(min(20, len(df))):  # Ensure we only process up to 10 files
+for i in range(min(2, len(df))):  # Ensure we only process up to 20 files
     selected_row = df.iloc[i]
     edf_path = selected_row['path_to_edf']
     subject_id = selected_row['subject_id']
@@ -99,21 +96,16 @@ for i in range(min(20, len(df))):  # Ensure we only process up to 10 files
     normalized_data = normalized_data.reshape(epochs_car.get_data().shape)
 
     # Store the cleaned and normalized epochs
-    all_epochs_clean.append(mne.EpochsArray(normalized_data, info))
+    all_epochs_data.append(normalized_data)
     
     # Subject id as label for training
-    label.append(subject_id)
-    
+    all_epochs_labels.extend([subject_id] * normalized_data.shape[0])
 
+# Combine all epochs into one large Epochs object
+combined_epochs_data = np.concatenate(all_epochs_data, axis=0)
+combined_epochs_info = mne.create_info(channels_standard, f_s, ch_types='eeg')
+combined_epochs = mne.EpochsArray(combined_epochs_data, combined_epochs_info)
 
-# Create a new folder on the desktop to save the output files
-output_folder = os.path.join(desktop_path, "EEG_Cleaned_Epochs_train")
-os.makedirs(output_folder, exist_ok=True)
-
-
-# Save the cleaned epochs to the new folder
-for i, epochs in enumerate(all_epochs_clean):
-    filename = os.path.join(output_folder, f'subject_{i+1}_epochs_clean.fif')
-    epochs.save(filename, overwrite=True)
-    
-
+# Save the combined epochs to a single FIF file
+combined_filename = os.path.join(desktop_path, 'combined_all_epochs_clean.fif')
+combined_epochs.save(combined_filename, overwrite=True)
