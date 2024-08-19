@@ -5,6 +5,7 @@ import sys
 import mne
 import numpy as np
 import pandas as pd
+import joblib
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -21,6 +22,8 @@ import optuna
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
+
+desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 
 # 加载数据
 train_df = pd.read_excel('~/Desktop/extracted_features.xlsx')
@@ -115,3 +118,8 @@ importance_df = pd.DataFrame({
 
 print("Top 10 Important Features:")
 print(importance_df.head(20))
+
+model_path = os.path.join(desktop_path, 'final_random_forest_model.joblib')
+joblib.dump(final_model, model_path)
+
+print(f"模型已保存到: {model_path}")

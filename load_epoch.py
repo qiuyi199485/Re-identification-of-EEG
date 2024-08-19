@@ -2,7 +2,7 @@ import os
 import mne
 import matplotlib.pyplot as plt
 import pandas as pd
-
+from settings import f_s, f_min, f_max
 # 定义桌面路径
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 
@@ -33,4 +33,3 @@ epoch_to_plot.plot(scalings='auto')  # 使用自动比例进行绘图
 plt.show()
 
 
-plt.show()

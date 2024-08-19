@@ -129,8 +129,8 @@ for label, group in extracted_features_df.groupby('Label'):
     test_set = pd.concat([test_set, group.iloc[10:]], ignore_index=True)
 
 # 保存val_set和test_set到Excel文件
-val_set_path = os.path.join(desktop_path, 'val_set.xlsx')
-test_set_path = os.path.join(desktop_path, 'test_set.xlsx')
+val_set_path = os.path.join(desktop_path, 'val_set_feature.xlsx')
+test_set_path = os.path.join(desktop_path, 'test_set_feature.xlsx')
 
 val_set.to_excel(val_set_path, index=False)
 test_set.to_excel(test_set_path, index=False)
