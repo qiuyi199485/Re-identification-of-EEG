@@ -5,25 +5,27 @@ import pandas as pd
 from scipy.stats import kurtosis, skew
 from scipy.signal import welch
 from settings import f_s, f_min, f_max
+import random
 
-# 定义桌面路径并指定EEG文件夹
+
+# Define the desktop path and specify the folder
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-eeg_folder_path = os.path.join(desktop_path, 'EEG_Cleaned_Epochs_train')
+eeg_folder_path = os.path.join("D:\\Reidentification", "Epoch_val_test")
 
-# 读取标签文件
-labels_file_path = os.path.join(desktop_path, 'challenges_subset.xlsx')
+# load label file
+labels_file_path = os.path.join(desktop_path, 'val_test_subset.xlsx')
 labels_df = pd.read_excel(labels_file_path)
 
-# 获取 subject_id 列的值作为标签
+# get subject_id colum as label
 labels = labels_df['subject_id'].tolist()
 
-# 获取EEG文件夹中的所有 .fif 文件，并按照文件名中的数字部分排序
+# Get all .fif files in the EEG folder and sort them by the numeric part of the file name
 fif_files = [os.path.join(eeg_folder_path, f) for f in os.listdir(eeg_folder_path) if f.endswith('.fif')]
 fif_files.sort(key=lambda x: int(os.path.basename(x).split('_')[1]))
 
-# 检查文件数量和标签数量是否匹配
+# Check that the number of files and the number of labels match
 if len(fif_files) != len(labels):
-    raise ValueError("文件数量与标签数量不匹配，请检查输入数据。")
+    raise ValueError("The number of files does not match the number of labels, please check the input data")
 
 def extract_features(epochs, f_s):
     n_epochs = epochs.get_data().shape[0]
@@ -94,13 +96,13 @@ feature_columns = [f'Feature_{i+1}' for i in range(final_data.shape[1] - 1)] + [
 df = pd.DataFrame(final_data, columns=feature_columns)
 
 # 保存为 Excel 文件
-output_path = os.path.join(desktop_path, 'extracted_features.xlsx')
+output_path = os.path.join(desktop_path, 'extracted_features_val_test.xlsx')
 df.to_excel(output_path, index=False)
 
 print(f"Features have been successfully extracted and saved to {output_path}")
 
 
-extracted_features_path = os.path.join(desktop_path, 'extracted_features.xlsx')
+extracted_features_path = os.path.join(desktop_path, 'extracted_features_val_test.xlsx')
 feature_names_path = os.path.join(desktop_path, 'feature_name.xlsx')
 
 # 读取数据
@@ -115,3 +117,30 @@ extracted_features_df.columns = new_feature_names + extracted_features_df.column
 extracted_features_df.to_excel(extracted_features_path, index=False)
 
 print(f"Feature names have been successfully replaced and the file has been saved to {extracted_features_path}")
+
+# 读取特征数据
+extracted_features_df = pd.read_excel(extracted_features_path)
+
+# 初始化新的DataFrame用于存储val_set和test_set
+val_set = pd.DataFrame(columns=extracted_features_df.columns)
+test_set = pd.DataFrame(columns=extracted_features_df.columns)
+
+# 设置随机种子以确保结果可重复（可选）
+random.seed(42)
+
+# 根据标签分组，并以20%的概率将整个label的特征归入val_set，其余的归入test_set
+for label, group in extracted_features_df.groupby('Label'):
+    if random.random() < 0.2:
+        val_set = pd.concat([val_set, group], ignore_index=True)
+    else:
+        test_set = pd.concat([test_set, group], ignore_index=True)
+
+# 保存val_set和test_set到Excel文件
+val_set_path = os.path.join(desktop_path, 'val_set_feature.xlsx')
+test_set_path = os.path.join(desktop_path, 'test_set_feature.xlsx')
+
+val_set.to_excel(val_set_path, index=False)
+test_set.to_excel(test_set_path, index=False)
+
+print(f"Validation set has been saved to {val_set_path}")
+print(f"Test set has been saved to {test_set_path}")

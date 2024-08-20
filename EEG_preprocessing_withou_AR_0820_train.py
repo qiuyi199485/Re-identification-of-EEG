@@ -1,11 +1,9 @@
-import matplotlib.pyplot as plt
 import os
 import sys
 import mne
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from autoreject import AutoReject
 
 sys.path.insert(1, 'C:\\Users\\49152\\Documents\\GitHub\\Re-identification-of-EEG')
 from settings import channels_standard, channels_ref, channels_le, channel_mapping_ref, channel_mapping_le
@@ -18,15 +16,17 @@ def normalize_data(data):
 
 # Read the Excel file
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-evaluation_set_path = os.path.join(desktop_path, "evaluation_set.xlsx")
-df = pd.read_excel(evaluation_set_path)
+Reidentifiable_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
+val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
+df = pd.read_excel(Reidentifiable_subset_path)
+# df = pd.read_excel(val_test_subset_path)
 
 # Initialization
-all_features = []
-labels = []
+all_epochs_clean = []
+label = []
 
 # Process each EDF file
-for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
+for i in range(len(df)):  
     selected_row = df.iloc[i]
     edf_path = selected_row['path_to_edf']
     subject_id = selected_row['subject_id']
@@ -70,18 +70,14 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
         epoch = data[:, start_idx:end_idx]
         epochs.append(epoch)
 
-    # Convert epochs to MNE Epochs object for Autoreject
+    # Convert epochs to MNE Epochs object
     epochs_array = np.array(epochs)
     info = mne.create_info(channels_standard, f_s, ch_types='eeg')
     epochs_mne = mne.EpochsArray(epochs_array, info)
     epochs_mne.set_montage(montage)
 
-    # Use Autoreject to detect and repair artifacts
-    ar = AutoReject()
-    epochs_clean = ar.fit_transform(epochs_mne)
-
     # Apply CAR (Common Average Referencing)
-    epochs_car = epochs_clean.copy().apply_proj()
+    epochs_car = epochs_mne.copy().apply_proj()
     epochs_car = epochs_car.set_eeg_reference('average', projection=False)
 
     # Remove mean from each epoch
@@ -93,57 +89,17 @@ for i in range(min(1, len(df))):  # Ensure we only process up to 10 files
     # Reshape normalized data back to original epochs structure
     normalized_data = normalized_data.reshape(epochs_car.get_data().shape)
 
-    # Calculate the average of each epoch across all segments
-    mean_feature = np.mean(normalized_data, axis=0)  # Mean across all epochs
-
-    # Flatten the mean feature to create a 1D array
-    flattened_feature = mean_feature.flatten()
-
-    # Ensure that the feature array has exactly 294 elements
-    if len(flattened_feature) > 294:
-        flattened_feature = flattened_feature[:294]
-    elif len(flattened_feature) < 294:
-        flattened_feature = np.pad(flattened_feature, (0, 294 - len(flattened_feature)), mode='constant')
-
-    # Store the feature and the label
-    all_features.append(flattened_feature)
-    labels.append(subject_id)
-
-# Combine features and labels
-features_array = np.array(all_features)
-labels_array = np.array(labels).reshape(-1, 1)
-final_data = np.hstack((features_array, labels_array))
-
-# Create a DataFrame for the final data
-columns = [f'feature_{i+1}' for i in range(294)] + ['label']
-final_df = pd.DataFrame(final_data, columns=columns)
-
-# Create a new folder on the desktop to save the output file
-output_folder = os.path.join(desktop_path, "EEG_Cleaned_Features_heldout")
+    # Store the cleaned and normalized epochs
+    all_epochs_clean.append(mne.EpochsArray(normalized_data, info))
+    
+    # Subject id as label for training
+    label.append(subject_id)
+    
+# Create the folder structure on the D: drive
+output_folder = "D:\\Reidentification\\Epoch_train"
 os.makedirs(output_folder, exist_ok=True)
 
-# Save the DataFrame to an Excel file
-output_file = os.path.join(output_folder, "heldout_features.xlsx")
-final_df.to_excel(output_file, index=False)
-
-print("Feature extraction complete. Data saved to:", output_file)
-
-feature_name_path = os.path.join(desktop_path, "feature_name.xlsx")
-feature_name_df = pd.read_excel(feature_name_path, header=None)
-
-# 获取feature_name.xlsx的第一列前294个字符作为特征名称
-new_feature_names = feature_name_df.iloc[:294, 0].tolist()
-
-# 确保特征名称数量为294个
-if len(new_feature_names) < 294:
-    new_feature_names += [f'feature_{i+1}' for i in range(len(new_feature_names), 294)]
-
-# 将heldout_features.xlsx的特征列名替换为新的特征名称
-new_columns = new_feature_names + ['Label']
-final_df.columns = new_columns
-
-# 保存修改后的DataFrame到Excel文件
-output_file_modified = os.path.join(output_folder, "heldout_features.xlsx")
-final_df.to_excel(output_file_modified, index=False)
-
-print("Feature name modification complete. Modified data saved to:", output_file_modified)
+# Save the cleaned epochs to the new folder
+for i, epochs in enumerate(all_epochs_clean):
+    filename = os.path.join(output_folder, f'subject_{i+1}_epochs_train.fif')
+    epochs.save(filename, overwrite=True)

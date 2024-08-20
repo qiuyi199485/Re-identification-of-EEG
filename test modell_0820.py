@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 import settings
 import sys
@@ -6,7 +7,6 @@ import mne
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.preprocessing import label_binarize
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -28,8 +28,8 @@ desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 
 # 加载数据
 train_df = pd.read_excel('~/Desktop/extracted_features.xlsx')
-val_df = pd.read_excel('~/Desktop/val_set_feature.xlsx')
-test_df = pd.read_excel('~/Desktop/test_set_feature.xlsx')
+val_df = pd.read_excel('~/Desktop/val_set.xlsx')
+test_df = pd.read_excel('~/Desktop/test_set.xlsx')
 
 # 检查并删除缺失值
 train_df.dropna(inplace=True)
@@ -74,9 +74,15 @@ def objective(trial):
     
     return accuracy
 
+# 保存每次迭代的准确率
+accuracy_history = []
+
 # 创建并优化 study
+def callback(study, trial):
+    accuracy_history.append(trial.value)
+
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=10)
+study.optimize(objective, n_trials=10, callbacks=[callback])
 
 # 输出最优参数和得分
 print("Best trial:")
@@ -101,27 +107,51 @@ precision = precision_score(y_test, y_test_pred, average='weighted')
 recall = recall_score(y_test, y_test_pred, average='weighted')
 f1 = f1_score(y_test, y_test_pred, average='weighted')
 
-
+# 注意：roc_auc_score对于多分类问题需要特殊处理，以下是平均策略
+roc_auc = roc_auc_score(y_test, y_test_prob, multi_class='ovr', average='weighted')
 
 print(f"Test Accuracy: {accuracy}")
 print(f"Test Precision: {precision}")
 print(f"Test Recall: {recall}")
 print(f"Test F1 Score: {f1}")
+print(f"Test AUC-ROC: {roc_auc}")
 
-
-
-
-# 获取特征重要性并显示前十
+# 获取特征重要性并显示前二十个
 feature_importances = final_model.feature_importances_
 importance_df = pd.DataFrame({
     'Feature': X_train.columns,
     'Importance': feature_importances
 }).sort_values(by='Importance', ascending=False)
 
-print("Top 10 Important Features:")
+# 打印前20个重要特征
+print("Top 20 Important Features:")
 print(importance_df.head(20))
 
+# 可视化前20个重要特征
+plt.figure(figsize=(10, 8))
+sns.barplot(
+    x='Importance', 
+    y='Feature', 
+    data=importance_df.head(20),
+    palette=sns.color_palette("coolwarm_r", len(importance_df.head(20)))  # 使用渐变色
+)
+plt.title("Random_Forest Feature Selection")
+plt.xlabel("Relative importance")
+plt.ylabel("Features")
+plt.show()
+
+
+# Save model
 model_path = os.path.join(desktop_path, 'final_random_forest_model.joblib')
 joblib.dump(final_model, model_path)
+print(f"model saved to : {model_path}")
 
-print(f"模型已保存到: {model_path}")
+
+# 绘制学习曲线
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, len(accuracy_history) + 1), accuracy_history, marker='o')
+plt.title('Learning Curve (Accuracy over Trials)')
+plt.xlabel('Trial')
+plt.ylabel('Validation Accuracy')
+plt.grid(True)
+plt.show()

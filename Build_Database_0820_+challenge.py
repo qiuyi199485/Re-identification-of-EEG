@@ -309,35 +309,22 @@ def convert_to_pandas_dataframe(dataset_dict):
 
 
 
-def get_challenges_subsets(dataframe_df, subset_size=20):
+def get_Reidentifiable_subsets(dataframe_df):
+    # Filter by 'first_recording' = 1 and with 2 sessions
+    filtered_df = dataframe_df[(dataframe_df['first_recording'] == 1) & (dataframe_df['subject_class'] == 'D')]
     
-    # filter by 'first_recording' = 1 and with 2 sessions
-    filtered_df = dataframe_df[(dataframe_df['first_recording'] == 1) & (dataframe_df['subject_class']=='D')]
     # Check the amount of recording
     total_rows = len(filtered_df)
-    if total_rows < subset_size:
-        raise ValueError("Not enough recordings for the challenges subset.")
-    subsets = filtered_df.sample(n=subset_size)
+    if total_rows == 0:
+        raise ValueError("No recordings found for the Reidentifiable subset.")
     
-    return subsets
+    return filtered_df
 
-# challenges_subsets include the subject with 1 session
-def get_challenges_subsets_op2(dataframe_df, subset_size=50):
-    
-    # filter by 'first_recording' = 1 
-    filtered_df = dataframe_df[dataframe_df['first_recording'] == 1]
-    # Check the amount of recording
-    total_rows = len(filtered_df)
-    if total_rows < subset_size:
-        raise ValueError("Not enough recordings for the challenges subset.")
-    subsets = filtered_df.sample(n=subset_size)
-    
-    return subsets
 
 # creat dataset to val_test_set
 def get_val_test_subsets(dataframe_df):
-    challenges_df=subset_dataframe
-    subject_list = challenges_df['subject_id'].tolist()
+    Reidentifiable_df=subset_dataframe
+    subject_list = Reidentifiable_df['subject_id'].tolist()
     val_test_df = pd.DataFrame()
     # filter by 'first_recording' = 1 
     
@@ -351,26 +338,26 @@ def get_val_test_subsets(dataframe_df):
     return val_test_df
 
 # 创建 Held-out_set
-def create_held_out_set(dataframe, held_out_size=10):
+def create_evaluation_set(dataframe, evaluation_size=10):
     # 过滤条件：'subject_class' == 'D' 且 'last_session' == 1
     filtered_df = dataframe[(dataframe['subject_class'] == 'D') & (dataframe['last_session'] == 1)]
     
     # 检查可用行数
     unique_subjects = filtered_df['subject_id'].unique()
-    if len(unique_subjects) < held_out_size:
+    if len(unique_subjects) < evaluation_size:
         raise ValueError("Not enough unique subjects for the held-out set.")
     
     # 随机选择 10 个不同的 subject_id
-    selected_subjects = np.random.choice(unique_subjects, held_out_size, replace=False)
+    selected_subjects = np.random.choice(unique_subjects, evaluation_size, replace=False)
     
     # 从每个 selected_subject 中随机选择一行
-    held_out_set = pd.DataFrame()
+    evaluation_set = pd.DataFrame()
     for subject in selected_subjects:
         subject_rows = filtered_df[filtered_df['subject_id'] == subject]
         selected_row = subject_rows.sample(n=1)  # 随机选择一行
-        held_out_set = held_out_set.append(selected_row, ignore_index=True)
+        evaluation_set = evaluation_set.append(selected_row, ignore_index=True)
     
-    return held_out_set
+    return evaluation_set
 
 
 
@@ -396,29 +383,27 @@ def export_subset_to_excel(df, filename):
 
 # defination path   定义文件路径
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-challenges_subset_path = os.path.join(desktop_path, "challenges_subset.xlsx")
+Reidentifiable_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
 dataframe_path = os.path.join(desktop_path, "dataframe.xlsx")
 #train_subset_path = os.path.join(desktop_path, "train_subset.xlsx")
 val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
 #validation_subset_path = os.path.join(desktop_path, "validation_subset.txt")
 #test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
-held_out_set_path = os.path.join(desktop_path, "held_out_set.xlsx")
+evaluation_set_path = os.path.join(desktop_path, "evaluation_set_set.xlsx")
 
 # export dataset to desltop  导出数据集
-#export_subset_to_excel(subset_dataframe, challenges_subset_path)
+#export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
 export_subset_to_excel(subjects_dataframe, dataframe_path)
 dataframe_df = pd.read_excel(dataframe_path)
 
 
 # get subset, trainset, validation subset, test subset
-subset_dataframe = get_challenges_subsets(dataframe_df)
-#train_subset, test_subset = split_train_val_test(subset_dataframe)
+subset_dataframe = get_Reidentifiable_subsets(dataframe_df)
 val_test_subset_dataframe = get_val_test_subsets(dataframe_df)
-held_out_set = create_held_out_set(dataframe_df)
+evaluation_set = create_evaluation_set(dataframe_df)
 
 
-export_subset_to_excel(subset_dataframe, challenges_subset_path)
+export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
 export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
-export_subset_to_excel(held_out_set, held_out_set_path)
-#export_subset_to_excel(train_subset, train_subset_path)
-#export_subset_to_excel(test_subset, test_subset_path)
+export_subset_to_excel(evaluation_set, evaluation_set_path)
+
