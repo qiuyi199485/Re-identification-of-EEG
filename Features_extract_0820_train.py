@@ -54,6 +54,7 @@ def extract_features(epochs, f_s):
             freqs, psd = welch(sub_segment, fs=f_s)
             
             # Compute band power in delta (1-4 Hz), theta (4-8 Hz), alpha (8-13 Hz), beta (13-30 Hz), gamma (30-100 Hz)
+            #Integrate the PSD to get the band power
             delta_bp = np.trapz(psd[(freqs >= 1) & (freqs < 4)])
             theta_bp = np.trapz(psd[(freqs >= 4) & (freqs < 8)])
             alpha_bp = np.trapz(psd[(freqs >= 8) & (freqs < 13)])

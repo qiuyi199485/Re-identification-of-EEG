@@ -18,8 +18,8 @@ def normalize_data(data):
 
 # Read the Excel file
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-evaluation_set_path = os.path.join(desktop_path, "evaluation_set.xlsx")
-df = pd.read_excel(evaluation_set_path)
+challenge_set_path = os.path.join(desktop_path, "challenge_set.xlsx")
+df = pd.read_excel(challenge_set_path)
 
 # Initialization
 all_features = []

@@ -306,7 +306,18 @@ def convert_to_pandas_dataframe(dataset_dict):
     
     return df             
 
+# split dataset from session #2 to val_set and test_set
+def split_val_test_with_probability(df, val_probability=0.2):
+    val_df = pd.DataFrame()
+    test_df = pd.DataFrame()
 
+    for _, row in df.iterrows():
+        if rand_bool(val_probability):
+            val_df = pd.concat([val_df, row.to_frame().T], ignore_index=True)
+        else:
+            test_df = pd.concat([test_df, row.to_frame().T], ignore_index=True)
+
+    return val_df, test_df
 
 
 def get_Reidentifiable_subsets(dataframe_df):
@@ -337,27 +348,27 @@ def get_val_test_subsets(dataframe_df):
     
     return val_test_df
 
-# 创建 Held-out_set
-def create_evaluation_set(dataframe, evaluation_size=10):
+# 创建 challenge_set
+def create_challenge_set(dataframe, challenge_size=10):
     # 过滤条件：'subject_class' == 'D' 且 'last_session' == 1
     filtered_df = dataframe[(dataframe['subject_class'] == 'D') & (dataframe['last_session'] == 1)]
     
     # 检查可用行数
     unique_subjects = filtered_df['subject_id'].unique()
-    if len(unique_subjects) < evaluation_size:
+    if len(unique_subjects) < challenge_size:
         raise ValueError("Not enough unique subjects for the held-out set.")
     
     # 随机选择 10 个不同的 subject_id
-    selected_subjects = np.random.choice(unique_subjects, evaluation_size, replace=False)
+    selected_subjects = np.random.choice(unique_subjects, challenge_size, replace=False)
     
     # 从每个 selected_subject 中随机选择一行
-    evaluation_set = pd.DataFrame()
+    challenge_set = pd.DataFrame()
     for subject in selected_subjects:
         subject_rows = filtered_df[filtered_df['subject_id'] == subject]
         selected_row = subject_rows.sample(n=1)  # 随机选择一行
-        evaluation_set = evaluation_set.append(selected_row, ignore_index=True)
+        challenge_set = challenge_set.append(selected_row, ignore_index=True)
     
-    return evaluation_set
+    return challenge_set
 
 
 
@@ -385,11 +396,11 @@ def export_subset_to_excel(df, filename):
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 Reidentifiable_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
 dataframe_path = os.path.join(desktop_path, "dataframe.xlsx")
-#train_subset_path = os.path.join(desktop_path, "train_subset.xlsx")
 val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
-#validation_subset_path = os.path.join(desktop_path, "validation_subset.txt")
-#test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
-evaluation_set_path = os.path.join(desktop_path, "evaluation_set_set.xlsx")
+challenge_set_path = os.path.join(desktop_path, "challenge_set_set.xlsx")
+val_subset_path = os.path.join(desktop_path, "val_subset.xlsx")
+test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
+
 
 # export dataset to desltop  导出数据集
 #export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
@@ -400,10 +411,13 @@ dataframe_df = pd.read_excel(dataframe_path)
 # get subset, trainset, validation subset, test subset
 subset_dataframe = get_Reidentifiable_subsets(dataframe_df)
 val_test_subset_dataframe = get_val_test_subsets(dataframe_df)
-evaluation_set = create_evaluation_set(dataframe_df)
+challenge_set = create_challenge_set(dataframe_df)
+val_set, test_set = split_val_test_with_probability(val_test_subset_dataframe, val_probability=0.2)
 
 
+#export dataset
 export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
-export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
-export_subset_to_excel(evaluation_set, evaluation_set_path)
-
+#export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
+#export_subset_to_excel(challenge_set, challenge_set_path)
+export_subset_to_excel(val_set, val_subset_path)
+export_subset_to_excel(test_set, test_subset_path)
