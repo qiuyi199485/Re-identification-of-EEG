@@ -14,8 +14,15 @@ df1 = pd.read_excel(file_path_1)
 # 对每个 subject_id 只取一次 sex 的值（假设每个 subject_id 对应的 sex 唯一）
 unique_subjects_1 = df1.drop_duplicates(subset='subject_id')
 
+
 # 统计整体 sex 中 'm' 和 'f' 的总数量
 sex_counts_1 = unique_subjects_1['sex'].value_counts()
+
+
+# 统计一共有多少个不同的 subject_id
+total_unique_subject_all = unique_subjects_1['subject_id'].nunique()
+
+
 
 # 统计 subject_class 为 "D" 的 subject 的 sex 数量
 subject_class_d = unique_subjects_1[unique_subjects_1['subject_class'] == 'D']
@@ -29,6 +36,24 @@ m_f_ratio_1 = m_count_1 / f_count_1 if f_count_1 != 0 else float('inf')
 m_count_d = sex_counts_d.get('m', 0)
 f_count_d = sex_counts_d.get('f', 0)
 m_f_ratio_d = m_count_d / f_count_d if f_count_d != 0 else float('inf')
+
+# 统计 subject_class 为 "D" 中一共有多少个不同的 subject_id
+total_unique_subject_ids_d = subject_class_d['subject_id'].nunique()
+
+
+
+
+# 统计 subject_class 为 "A" 中一共有多少个不同的 subject_id
+subject_class_a = unique_subjects_1[unique_subjects_1['subject_class'] == 'A']
+total_unique_subject_ids_a = subject_class_a['subject_id'].nunique()
+
+# 统计 subject_class 为 "B" 中一共有多少个不同的 subject_id
+subject_class_b = unique_subjects_1[unique_subjects_1['subject_class'] == 'B']
+total_unique_subject_ids_b = subject_class_b['subject_id'].nunique()
+
+# 统计 subject_class 为 "A" 中一共有多少个不同的 subject_id
+subject_class_c = unique_subjects_1[unique_subjects_1['subject_class'] == 'C']
+total_unique_subject_ids_c = subject_class_c['subject_id'].nunique()
 
 # 第二个文件: Reidentifiable_subset.xlsx
 file_name_2 = "Reidentifiable_subset.xlsx"
@@ -44,6 +69,7 @@ m_count_2 = sex_counts_2.get('m', 0)
 f_count_2 = sex_counts_2.get('f', 0)
 m_f_ratio_2 = m_count_2 / f_count_2 if f_count_2 != 0 else float('inf')
 
+total_unique_subject_ids_train = unique_subjects_2['subject_id'].nunique()
 # 第3个文件: val_subset.xlsx
 
 file_name_3 = "val_subset.xlsx"
@@ -59,6 +85,7 @@ m_count_3 = sex_counts_3.get('m', 0)
 f_count_3 = sex_counts_3.get('f', 0)
 m_f_ratio_3 = m_count_3 / f_count_3 if f_count_3 != 0 else float('inf')
 
+total_unique_subject_val = unique_subjects_2['subject_id'].nunique()
 # 第4个文件: test_subset.xlsx
 
 file_name_4 = "test_subset.xlsx"
@@ -74,31 +101,45 @@ m_count_4 = sex_counts_4.get('m', 0)
 f_count_4 = sex_counts_4.get('f', 0)
 m_f_ratio_4 = m_count_4 / f_count_4 if f_count_4 != 0 else float('inf')
 
-
+total_unique_subject_test = unique_subjects_2['subject_id'].nunique()
 
 # 构建输出内容
 output_text = (
     "Subjects included in study \n"
+    f"Total subjects: {total_unique_subject_all}\n"
     f"Total 'm': {m_count_1}\n"
     f"Total 'f': {f_count_1}\n"
     f"m/f ratio: {m_f_ratio_1}\n"
     "\n"
     "Re-identifiable Group (class D)\n"
+    f"Total subjects: {total_unique_subject_ids_d}\n"
     f"Total 'm': {m_count_d}\n"
     f"Total 'f': {f_count_d}\n"
     f"m/f ratio: {m_f_ratio_d}\n"
     "\n"
+    "class A\n"
+    f"Total subjects: {total_unique_subject_ids_a}\n"
+    "\n"
+    "class B\n"
+    f"Total subjects: {total_unique_subject_ids_b}\n"
+    "\n"
+    "class C\n"
+    f"Total subjects: {total_unique_subject_ids_c}\n"
+    "\n"
     "Subjects used for training\n"
+    f"Total subjects: {total_unique_subject_ids_train}\n"
     f"Total 'm': {m_count_2}\n"
     f"Total 'f': {f_count_2}\n"
     f"m/f ratio: {m_f_ratio_2}\n"
     "\n"
     "Subjects used for val_set\n"
+    f"Total subjects: {total_unique_subject_val}\n"
     f"Total 'm': {m_count_3}\n"
     f"Total 'f': {f_count_3}\n"
     f"m/f ratio: {m_f_ratio_3}\n"
     "\n"
     "Subjects used for test_set\n"
+    f"Total subjects: {total_unique_subject_test}\n"
     f"Total 'm': {m_count_4}\n"
     f"Total 'f': {f_count_4}\n"
     f"m/f ratio: {m_f_ratio_4}\n"
