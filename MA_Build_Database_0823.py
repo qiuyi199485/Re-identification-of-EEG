@@ -382,8 +382,8 @@ def create_challenge_set(dataframe, challenge_size=10):
 #%%
 
 
-#path_to_edf_files = 'E:\\EEG data\\edf\\'
-path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\'
+path_to_edf_files = 'E:\\EEG data\\edf\\'
+#path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\'
 subjects_data = get_subjects(path_to_edf_files)
 raw_dataset_number = total_numbers_dataset(subjects_data)
 subjects_dataset = get_dataset(subjects_data)

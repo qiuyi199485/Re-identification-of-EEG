@@ -16,11 +16,9 @@ def normalize_data(data):
 
 def process_data(df, output_folder):
     # Initialization
-    all_epochs_clean = []
-    label = []
 
     # Process each EDF file
-    for i in range(len(df)):  
+    for i in range(0,len(df)):  
         selected_row = df.iloc[i]
         edf_path = selected_row['path_to_edf']
         subject_id = selected_row['subject_id']
@@ -84,45 +82,42 @@ def process_data(df, output_folder):
         normalized_data = normalized_data.reshape(epochs_car.get_data().shape)
 
         # Store the cleaned and normalized epochs
-        all_epochs_clean.append(mne.EpochsArray(normalized_data, info))
+        cleaned_epochs = mne.EpochsArray(normalized_data, info)
 
-        # Subject id as label for training
-        label.append(subject_id)
-
-    
-    subset_type = os.path.basename(output_folder)
-    
-    # Create the folder structure on the output path
-    os.makedirs(output_folder, exist_ok=True)
-
-    # Save the cleaned epochs to the new folder
-    for i, epochs in enumerate(all_epochs_clean):
+        # Create the folder structure on the output path
+        os.makedirs(output_folder, exist_ok=True)
+        
+        # Define the filename based on the subject ID
+        subset_type = os.path.basename(output_folder)
         filename = os.path.join(output_folder, f'subject_{i+1}_{subset_type}.fif')
-        epochs.save(filename, overwrite=True)
+
+        # Save the cleaned epochs to the new folder
+        cleaned_epochs.save(filename, overwrite=True)
+
+        print(f"Processed and saved {filename}")
 
 # Paths for the new Excel files
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 val_subset_path = os.path.join(desktop_path, "val_subset.xlsx")
 test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
 train_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
+
 # Read the Excel files
 df_train = pd.read_excel(train_subset_path)
 df_val = pd.read_excel(val_subset_path)
 df_test = pd.read_excel(test_subset_path)
 
-
-# Process and save the trianing subset (can change the path to desktop)
-
+# Process and save the training subset (can change the path to desktop)
 train_epoch_path = os.path.join("D:\\Reidentification", "Epoch_train")
 process_data(df_train, "D:\\Reidentification\\Epoch_train")
-print(f"The preprocessed epochs of training set has been saved to {train_epoch_path}")
+print(f"The preprocessed epochs of training set have been saved to {train_epoch_path}")
 
 # Process and save the validation subset
 val_epoch_path = os.path.join("D:\\Reidentification", "Epoch_val")
 process_data(df_val, val_epoch_path)
-print(f"The preprocessed epochs of validation set has been saved to {val_epoch_path}")
+print(f"The preprocessed epochs of validation set have been saved to {val_epoch_path}")
 
 # Process and save the test subset
 test_epoch_path = os.path.join("D:\\Reidentification", "Epoch_test")
 process_data(df_test, test_epoch_path)
-print(f"The preprocessed epochs of test set has been saved to {test_epoch_path}")
+print(f"The preprocessed epochs of test set have been saved to {test_epoch_path}")

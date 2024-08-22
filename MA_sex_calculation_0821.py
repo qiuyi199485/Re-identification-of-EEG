@@ -85,7 +85,7 @@ m_count_3 = sex_counts_3.get('m', 0)
 f_count_3 = sex_counts_3.get('f', 0)
 m_f_ratio_3 = m_count_3 / f_count_3 if f_count_3 != 0 else float('inf')
 
-total_unique_subject_val = unique_subjects_2['subject_id'].nunique()
+total_unique_subject_val = unique_subjects_3['subject_id'].nunique()
 # 第4个文件: test_subset.xlsx
 
 file_name_4 = "test_subset.xlsx"
@@ -101,7 +101,7 @@ m_count_4 = sex_counts_4.get('m', 0)
 f_count_4 = sex_counts_4.get('f', 0)
 m_f_ratio_4 = m_count_4 / f_count_4 if f_count_4 != 0 else float('inf')
 
-total_unique_subject_test = unique_subjects_2['subject_id'].nunique()
+total_unique_subject_test = unique_subjects_4['subject_id'].nunique()
 
 # 构建输出内容
 output_text = (

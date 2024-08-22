@@ -334,23 +334,19 @@ def get_Reidentifiable_subsets(dataframe_df):
 
 # creat dataset to val_test_set
 def get_val_test_subsets(dataframe_df):
-    
+    Reidentifiable_df=subset_dataframe
+    subject_list = Reidentifiable_df['subject_id'].tolist()
     val_test_df = pd.DataFrame()
-    vt_df = dataframe_df[(dataframe_df['reidx_session_id'] == 2) & (dataframe_df['subject_class'] == 'D')]
     # filter by 'first_recording' = 1 
-    subject_list = vt_df['subject_id'].unique()
-
-    # 遍历每个 subject_id 并进一步筛选数据
+    
     for subject in subject_list:
-        # 从已经筛选好的 val_test_df 中再次抽取每个 subject 的一行数据
-        subject_data = vt_df[vt_df['subject_id'] == subject]
-        if not subject_data.empty:
-            # 从筛选出的数据中随机选择一行，加入到 val_test_df
+       subject_data = dataframe_df[(dataframe_df['subject_id'] == subject) & (dataframe_df['reidx_session_id'] == 2)]
+       if not subject_data.empty:
+            # 从筛选出的数据中随机选择一行，加入到新的 DataFrame
             selected_row = subject_data.sample(n=1)
             val_test_df = pd.concat([val_test_df, selected_row], ignore_index=True)
     
     return val_test_df
-    
 
 # 创建 challenge_set
 def create_challenge_set(dataframe, challenge_size=10):
@@ -382,8 +378,7 @@ def create_challenge_set(dataframe, challenge_size=10):
 #%%
 
 
-#path_to_edf_files = 'E:\\EEG data\\edf\\'
-path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\'
+path_to_edf_files = 'E:\\EEG data\\edf\\'
 subjects_data = get_subjects(path_to_edf_files)
 raw_dataset_number = total_numbers_dataset(subjects_data)
 subjects_dataset = get_dataset(subjects_data)
@@ -401,12 +396,12 @@ def export_subset_to_excel(df, filename):
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 Reidentifiable_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
 dataframe_path = os.path.join(desktop_path, "dataframe.xlsx")
-val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
+#val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
 val_subset_path = os.path.join(desktop_path, "val_subset.xlsx")
 test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
 #challenge_set_path = os.path.join(desktop_path, "challenge_set_set.xlsx")
 
-# export dataframe to desltop  
+# export dataset to desltop  导出数据集
 #export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
 export_subset_to_excel(subjects_dataframe, dataframe_path)
 dataframe_df = pd.read_excel(dataframe_path)
@@ -421,7 +416,7 @@ val_set, test_set = split_val_test_with_probability(val_test_subset_dataframe, v
 
 #export dataset
 export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
-export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
+#export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
 #export_subset_to_excel(challenge_set, challenge_set_path)
 export_subset_to_excel(val_set, val_subset_path)
 export_subset_to_excel(test_set, test_subset_path)
