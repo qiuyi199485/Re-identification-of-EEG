@@ -3,6 +3,7 @@ import sys
 import os
 os.environ['MNE_USE_NUMBA'] = 'false'                                            #避免使用numba speedup
 import mne
+import re
 import numpy as np
 from IPython.display import clear_output
 import pandas as pd
@@ -108,13 +109,18 @@ def get_subjects(path):                                                         
             corrupted, edf_info, edf_time, edf_chan, edf_sfreq, sex, age = test_edf_corrupted_info(path_to_edf)                    # false, metadata, time
             channels_set = set(edf_chan)
             
+            # replace incorrect date from meta information
+            match = re.search(r's\d{3}_(\d{4})', path_to_edf)
+            year = match.group(1)
+            session_data = str(edf_info['meas_date'])[0:10]
+            new_session_data = year + session_data[4:]
             
             if (required_channels_1.issubset(channels_set) or required_channels_2.issubset(channels_set)):
              if not corrupted:
                 if subject_id in subjects:                               # 添加到subject字典 如果有就是说先前已经有这个病人id的档案了，添加在这个Key下面
-                    subjects[subject_id].append(('s_' + session_id, 't_' + take_id, sex, age, str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq,edf_info ))
+                    subjects[subject_id].append(('s_' + session_id, 't_' + take_id, sex, age, str(edf_time) ,new_session_data,path_to_edf, edf_chan,edf_sfreq,edf_info ))
                 else:                                                    # 新病人 ，新建病例
-                    subjects[subject_id] = [('s_' + session_id, 't_' + take_id,sex, age,str(edf_time) ,str(edf_info['meas_date'])[0:10],path_to_edf, edf_chan,edf_sfreq, edf_info)]
+                    subjects[subject_id] = [('s_' + session_id, 't_' + take_id,sex, age,str(edf_time) ,new_session_data,path_to_edf, edf_chan,edf_sfreq, edf_info)]
             
     total_numbers_dataset(subjects)        
 
@@ -397,20 +403,27 @@ def export_subset_to_excel(df, filename):
     df.to_excel(filename, index=False)
 
 
-# defination path   定义文件路径
+# defination excel path   
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 Reidentifiable_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
 dataframe_path = os.path.join(desktop_path, "dataframe.xlsx")
-val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
+#val_test_subset_path = os.path.join(desktop_path, "val_test_subset.xlsx")
 val_subset_path = os.path.join(desktop_path, "val_subset.xlsx")
 test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
 #challenge_set_path = os.path.join(desktop_path, "challenge_set_set.xlsx")
+
+# defination Pickle path
+Reidentifiable_subset_pickle_path = os.path.join(desktop_path, "Reidentifiable_subset.pkl")
+dataframe_pickle_path = os.path.join(desktop_path, "dataframe.pkl")
+#val_test_subset_pickle_path = os.path.join(desktop_path, "val_test_subset.pkl")
+val_subset_pickle_path = os.path.join(desktop_path, "val_subset.pkl")
+test_subset_pickle_path = os.path.join(desktop_path, "test_subset.pkl")
 
 # export dataframe to desltop  
 #export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
 export_subset_to_excel(subjects_dataframe, dataframe_path)
 dataframe_df = pd.read_excel(dataframe_path)
-
+subjects_dataframe.to_pickle(dataframe_pickle_path)
 
 # get subset, trainset, validation subset, test subset
 subset_dataframe = get_Reidentifiable_subsets(dataframe_df)
@@ -419,9 +432,16 @@ val_test_subset_dataframe = get_val_test_subsets(dataframe_df)
 val_set, test_set = split_val_test_with_probability(val_test_subset_dataframe, val_probability=0.2)
 
 
-#export dataset
+#export dataframe to excel
 export_subset_to_excel(subset_dataframe, Reidentifiable_subset_path)
-export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
+#export_subset_to_excel(val_test_subset_dataframe, val_test_subset_path)
 #export_subset_to_excel(challenge_set, challenge_set_path)
 export_subset_to_excel(val_set, val_subset_path)
 export_subset_to_excel(test_set, test_subset_path)
+
+#export dataframe to Pickle
+subset_dataframe.to_pickle(Reidentifiable_subset_pickle_path)
+#val_test_subset_dataframe.to_pickle(val_test_subset_pickle_path)
+# challenge_set.to_pickle(challenge_set_pickle_path)
+val_set.to_pickle(val_subset_pickle_path)
+test_set.to_pickle(test_subset_pickle_path)

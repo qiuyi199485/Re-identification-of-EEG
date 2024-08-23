@@ -59,7 +59,7 @@ def extract_and_save_features(preprocessed_eeg_path, output_filename, feature_na
     # Create a list to hold all features from all files
     all_data = []
 
-    for i in range(1000,1200):
+    for i in range(1200,1400):
         if i >= len(fif_files):
             break
 
@@ -89,19 +89,19 @@ def extract_and_save_features(preprocessed_eeg_path, output_filename, feature_na
     feature_columns = [f'Feature_{i+1}' for i in range(final_data.shape[1] - 1)] + ['Label']
     df = pd.DataFrame(final_data, columns=feature_columns)
 
-    # Save to Excel
+    # save to .pickle
     output_path = os.path.join(desktop_path, output_filename)
-    df.to_excel(output_path, index=False)
+    df.to_pickle(output_path)
 
     print(f"All features have been successfully extracted and saved to {output_path}")
 
-    # Replace feature names
+    # replace feature names
     feature_names_df = pd.read_excel(feature_names_path, header=None)
     new_feature_names = feature_names_df[0].tolist()
     df.columns = new_feature_names + ['Label']
 
-    # Re-save
-    df.to_excel(output_path, index=False)
+    # re-save
+    df.to_pickle(output_path)
 
     print(f"Feature names have been successfully replaced and the file has been saved to {output_path}")
 
@@ -124,10 +124,10 @@ val_labels_df = pd.read_excel(val_labels_file_path)
 test_labels_df = pd.read_excel(test_labels_file_path)
 
 # extract training set and save features
-#extract_and_save_features(preprocessed_eeg_train_folder_path, 'train_set_feature.xlsx', feature_names_path, train_labels_df)
+#extract_and_save_features(preprocessed_eeg_train_folder_path, 'train_set_feature.pkl', feature_names_path, train_labels_df)
 
 # extract val set and save features
-#extract_and_save_features(preprocessed_eeg_val_folder_path, 'val_set_feature.xlsx', feature_names_path, val_labels_df)
+#extract_and_save_features(preprocessed_eeg_val_folder_path, 'val_set_feature.pkl', feature_names_path, val_labels_df)
 
 # extract test set and save features
-extract_and_save_features(preprocessed_eeg_test_folder_path, 'test_set_feature_6.xlsx', feature_names_path, test_labels_df)
+#extract_and_save_features(preprocessed_eeg_test_folder_path, 'test_set_feature_7.pkl', feature_names_path, test_labels_df)
