@@ -98,26 +98,21 @@ def process_data(df, output_folder):
 
 # Paths for the new Excel files
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-val_subset_path = os.path.join(desktop_path, "val_subset.xlsx")
-test_subset_path = os.path.join(desktop_path, "test_subset.xlsx")
-train_subset_path = os.path.join(desktop_path, "Reidentifiable_subset.xlsx")
+Session_1_path = os.path.join(desktop_path, "Session_1.xlsx")
+Session_2_path = os.path.join(desktop_path, "Session_2.xlsx")
+
 
 # Read the Excel files
-df_train = pd.read_excel(train_subset_path)
-df_val = pd.read_excel(val_subset_path)
-df_test = pd.read_excel(test_subset_path)
+df_Session_1 = pd.read_excel(Session_1_path)
+df_Session_2 = pd.read_excel(Session_2_path)
 
-# Process and save the training subset (can change the path to desktop)
-train_epoch_path = os.path.join("D:\\Reidentification", "Epoch_train")
-process_data(df_train, "D:\\Reidentification\\Epoch_train")
-print(f"The preprocessed epochs of training set have been saved to {train_epoch_path}")
 
-# Process and save the validation subset
-val_epoch_path = os.path.join("D:\\Reidentification", "Epoch_val")
-process_data(df_val, val_epoch_path)
-print(f"The preprocessed epochs of validation set have been saved to {val_epoch_path}")
+# Process and save the Session_1 subset
+Session_1_epoch_path = os.path.join("D:\\Reidentification", "Epoch_Session_1")
+process_data(df_Session_1, Session_1_epoch_path)
+print(f"The preprocessed epochs of validation set have been saved to {Session_1_epoch_path}")
 
-# Process and save the test subset
-test_epoch_path = os.path.join("D:\\Reidentification", "Epoch_test")
-process_data(df_test, test_epoch_path)
-print(f"The preprocessed epochs of test set have been saved to {test_epoch_path}")
+# Process and save the Session_2 subset
+Session_2_epoch_path = os.path.join("D:\\Reidentification", "Epoch_Session_2")
+process_data(df_Session_2, Session_2_epoch_path)
+print(f"The preprocessed epochs of test set have been saved to {Session_2_epoch_path}")

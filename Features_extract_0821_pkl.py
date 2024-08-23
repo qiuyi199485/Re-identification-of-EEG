@@ -131,11 +131,11 @@ val_labels_df = pd.read_excel(val_labels_file_path)
 test_labels_df = pd.read_excel(test_labels_file_path)
 
 # extract training set and save features
-#extract_and_save_features(preprocessed_eeg_train_folder_path, 'train_set_feature.pkl', feature_names_path, train_labels_df)
+extract_and_save_features(preprocessed_eeg_train_folder_path, 'train_set_feature.pkl', feature_names_path, train_labels_df)
 
 # extract val set and save features
 extract_and_save_features(preprocessed_eeg_val_folder_path, 'val_set_feature.pkl', feature_names_path, val_labels_df)
 
 # extract test set and save features
-#extract_and_save_features(preprocessed_eeg_test_folder_path, 'test_set_feature.pkl', feature_names_path, test_labels_df)
+extract_and_save_features(preprocessed_eeg_test_folder_path, 'test_set_feature.pkl', feature_names_path, test_labels_df)
 
