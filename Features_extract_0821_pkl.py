@@ -5,7 +5,17 @@ import pandas as pd
 from scipy.stats import kurtosis, skew
 from scipy.signal import welch
 from settings import f_s
+import psutil
+import time
 
+# monitor CPU and RAM
+def monitor_resources():
+    cpu_percent = psutil.cpu_percent(interval=1)
+    memory_info = psutil.virtual_memory()
+    print(f"CPU Usage: {cpu_percent}%")
+    print(f"Memory Usage: {memory_info.percent}% ({memory_info.used / (1024 ** 3):.2f} GB / {memory_info.total / (1024 ** 3):.2f} GB)")
+    
+    
 def extract_and_save_features(preprocessed_eeg_path, output_filename, feature_names_path, labels_df):
     
 
@@ -67,6 +77,9 @@ def extract_and_save_features(preprocessed_eeg_path, output_filename, feature_na
         epochs = mne.read_epochs(fif_file)
         features = extract_features(epochs, f_s)
         n_epochs = features.shape[0]
+        
+        # Monitor resources after processing each file
+        monitor_resources()
 
         # Add label column
         label_column = np.array([subject_label] * n_epochs).reshape(-1, 1)
