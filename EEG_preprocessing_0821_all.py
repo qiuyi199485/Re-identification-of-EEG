@@ -55,7 +55,7 @@ def process_data(df, output_folder):
 
         # Split the data into 50 segments, each 4 seconds long
         segment_length = 4 * f_s
-        n_segments = 50
+        n_segments = 5
 
         epochs = []
         for seg_idx in range(n_segments):
@@ -118,11 +118,11 @@ process_data(df_train, "D:\\Reidentification\\Epoch_train")
 print(f"The preprocessed epochs of training set has been saved to {train_epoch_path}")
 
 # Process and save the validation subset
-val_epoch_path = os.path.join("D:\\Reidentification", "Epoch_val")
-process_data(df_val, val_epoch_path)
-print(f"The preprocessed epochs of validation set has been saved to {val_epoch_path}")
+#val_epoch_path = os.path.join("D:\\Reidentification", "Epoch_val")
+#process_data(df_val, val_epoch_path)
+#print(f"The preprocessed epochs of validation set has been saved to {val_epoch_path}")
 
 # Process and save the test subset
-test_epoch_path = os.path.join("D:\\Reidentification", "Epoch_test")
-process_data(df_test, test_epoch_path)
-print(f"The preprocessed epochs of test set has been saved to {test_epoch_path}")
+#test_epoch_path = os.path.join("D:\\Reidentification", "Epoch_test")
+#process_data(df_test, test_epoch_path)
+#print(f"The preprocessed epochs of test set has been saved to {test_epoch_path}")

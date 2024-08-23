@@ -18,7 +18,7 @@ def process_data(df, output_folder):
     # Initialization
 
     # Process each EDF file
-    for i in range(0,len(df)):  
+    for i in range(1701,len(df)):  
         selected_row = df.iloc[i]
         edf_path = selected_row['path_to_edf']
         subject_id = selected_row['subject_id']
@@ -53,7 +53,7 @@ def process_data(df, output_folder):
 
         # Split the data into 50 segments, each 4 seconds long
         segment_length = 4 * f_s
-        n_segments = 50
+        n_segments = 5
 
         epochs = []
         for seg_idx in range(n_segments):
@@ -108,14 +108,14 @@ df_val = pd.read_excel(val_subset_path)
 df_test = pd.read_excel(test_subset_path)
 
 # Process and save the training subset (can change the path to desktop)
-train_epoch_path = os.path.join("D:\\Reidentification", "Epoch_train")
-process_data(df_train, "D:\\Reidentification\\Epoch_train")
-print(f"The preprocessed epochs of training set have been saved to {train_epoch_path}")
+#train_epoch_path = os.path.join("D:\\Reidentification", "Epoch_train")
+#process_data(df_train, "D:\\Reidentification\\Epoch_train")
+#print(f"The preprocessed epochs of training set have been saved to {train_epoch_path}")
 
 # Process and save the validation subset
-val_epoch_path = os.path.join("D:\\Reidentification", "Epoch_val")
-process_data(df_val, val_epoch_path)
-print(f"The preprocessed epochs of validation set have been saved to {val_epoch_path}")
+#val_epoch_path = os.path.join("D:\\Reidentification", "Epoch_val")
+#process_data(df_val, val_epoch_path)
+#print(f"The preprocessed epochs of validation set have been saved to {val_epoch_path}")
 
 # Process and save the test subset
 test_epoch_path = os.path.join("D:\\Reidentification", "Epoch_test")

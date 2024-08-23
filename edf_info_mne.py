@@ -1,10 +1,23 @@
 import mne
-
+import re
 # load EDF
-raw = mne.io.read_raw_edf('C://Users/49152/Desktop/MA/Code/000/aaaaaaac/s001_2002/02_tcp_le/aaaaaaac_s001_t000.edf', preload=True)
-path_to_edf_files = 'C:\\Users\\49152\\Desktop\\MA\\Code\\000\\aaaaaaab\\s001_2002\\02_tcp_le\\aaaaaaab_s001_t000.edf'
+raw = mne.io.read_raw_edf('E:\\EEG data\\edf\\132\\aaaaatpq\\s002_2015\\01_tcp_ar\\aaaaatpq_s002_t000.edf', preload=True)
+path_to_edf_files = 'E:\\EEG data\\edf\\132\\aaaaatpq\\s002_2015\\01_tcp_ar\\aaaaatpq_s002_t000.edf'
 
 print(raw.info)
+session_data = str(raw.info['meas_date'])[0:10]
+session_year = str(raw.info['meas_date'])[0:4]
+print(str(raw.info['meas_date'])[0:4])
+
+match = re.search(r's\d{3}_(\d{4})', path_to_edf_files)
+year = match.group(1)
+print(year)
+
+if year==session_year:
+ print('yes')
+else:
+ print('no')
+
 
 # duration
 print(raw.times[-1])
