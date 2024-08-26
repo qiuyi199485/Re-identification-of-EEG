@@ -10,7 +10,8 @@ sys.path.insert(1, 'C:\\Users\\49152\\Documents\\GitHub\\Re-identification-of-EE
 from settings import channels_standard, channels_ref, channels_le, channel_mapping_ref, channel_mapping_le
 from settings import f_s, f_min, f_max
 
-# Function to normalize the data
+
+# Function to normalize the data for each channel across all epochs
 def normalize_data(data):
     scaler = MinMaxScaler()
     return scaler.fit_transform(data.reshape(-1, 1)).flatten()
@@ -65,31 +66,29 @@ def process_data(df, output_folder):
 
         # Convert epochs to MNE Epochs object
         epochs_array = np.array(epochs)
-        
         info = mne.create_info(channels_standard, f_s, ch_types='eeg')
         epochs_mne = mne.EpochsArray(epochs_array, info)
         epochs_mne.set_montage(montage)
+        
+        # Use Autoreject to detect and repair artifacts
+        ar = AutoReject()
+        epochs_clean = ar.fit_transform(epochs_mne)
 
         # Apply CAR (Common Average Referencing)
-        epochs_car = epochs_mne.copy().apply_proj()
+        epochs_car = epochs_clean.copy().apply_proj()
         epochs_car = epochs_car.set_eeg_reference('average', projection=False)
 
         # Remove mean from each epoch
         epochs_car = epochs_car.apply_function(lambda x: x - np.mean(x, axis=-1, keepdims=True))
 
-        # Normalize each segment individually for each channel
-        normalized_epochs = []
-        for seg_idx in range(n_segments):
-            normalized_segment = []
-            for ch in range(epochs_car.get_data().shape[1]):
-                normalized_channel = normalize_data(epochs_car.get_data()[seg_idx, ch])
-                normalized_segment.append(normalized_channel)
-            normalized_epochs.append(np.array(normalized_segment))
+        # Normalize each channel across all epochs
+        normalized_data = np.array([normalize_data(epochs_car.get_data()[:, ch].flatten()) for ch in range(epochs_car.get_data().shape[1])])
 
-        # Convert normalized data back to original shape
-        normalized_data = np.array(normalized_epochs)
-        
-        # Store the cleaned and normalized epochs
+        # Reshape normalized data
+        # back to original epochs structure
+        normalized_data = normalized_data.reshape(epochs_car.get_data().shape)
+
+        # Convert normalized data back to MNE EpochsArray
         cleaned_epochs = mne.EpochsArray(normalized_data, info)
 
         # Create the folder structure on the output path
@@ -104,14 +103,18 @@ def process_data(df, output_folder):
 
         print(f"Processed and saved {filename}")
 
+
+
 # Paths for the new Excel files
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 session_first_path = os.path.join(desktop_path, "session_first.xlsx")
 session_second_path = os.path.join(desktop_path, "session_second.xlsx")
 
+
 # Read the Excel files
 df_session_first = pd.read_excel(session_first_path)
 df_session_second = pd.read_excel(session_second_path)
+
 
 # Process and save the session_first subset
 session_first_epoch_path = os.path.join("D:\\Reidentification", "Epoch_session_first")

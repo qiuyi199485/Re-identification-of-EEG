@@ -117,26 +117,23 @@ desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 
 # path to preprocessed EEG epochs
 preprocessed_eeg_session_first_folder_path = "D:\\Reidentification\\Epoch_session_first"
-preprocessed_eeg_session_second_val_folder_path = "D:\\Reidentification\\Epoch_session_second_val"
-preprocessed_eeg_session_second_test_folder_path = "D:\\Reidentification\\Epoch_session_second_test"
+preprocessed_eeg_session_second_folder_path = "D:\\Reidentification\\Epoch_session_second"
+
 feature_names_path = os.path.join(desktop_path, 'feature_name.xlsx')
 
 # load label file
 session_first_labels_file_path = os.path.join(desktop_path, 'session_first.xlsx')
-session_second_val_labels_file_path = os.path.join(desktop_path, 'session_second_val.xlsx')
-session_second_test_labels_file_path = os.path.join(desktop_path, 'session_second_test.xlsx')
+session_second_labels_file_path = os.path.join(desktop_path, 'session_second.xlsx')
+
 
 session_first_labels_df = pd.read_excel(session_first_labels_file_path)
-session_second_val_labels_df = pd.read_excel(session_second_val_labels_file_path)
-session_second_test_labels_df = pd.read_excel(session_second_test_labels_file_path)
+session_second_labels_df = pd.read_excel(session_second_labels_file_path)
+
 
 # extract session_first set and save features
 extract_and_save_features(preprocessed_eeg_session_first_folder_path, 'session_first_feature.pkl', feature_names_path, session_first_labels_df)
 
-# extract session_second set and save features val
-extract_and_save_features(preprocessed_eeg_session_second_val_folder_path, 'session_second_val_feature.pkl', feature_names_path, session_second_val_labels_df)
-
-# extract session_second set and save features
-extract_and_save_features(preprocessed_eeg_session_second_test_folder_path, 'session_second_test_feature.pkl', feature_names_path, session_second_test_labels_df)
+# extract session_second set and save features 
+extract_and_save_features(preprocessed_eeg_session_second_folder_path, 'session_second_feature.pkl', feature_names_path, session_second_labels_df)
 
 

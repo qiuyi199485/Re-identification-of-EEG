@@ -13,7 +13,7 @@ reidentifiable_df = pd.read_excel(reidentifiable_file)
 val_test_df = pd.read_excel(val_test_file)
 
 # 从Reidentifiable_subset随机抽取10行
-sampled_df = reidentifiable_df.sample(n=10, random_state=42)  # 设置random_state以便结果可重复
+sampled_df = reidentifiable_df.sample(n=10)  # 不设置random_state，结果每次都不同
 
 # 根据抽样的“subjec_id”筛选val_test_subset中的行
 subject_ids = sampled_df["subject_id"].tolist()

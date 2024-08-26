@@ -77,17 +77,12 @@ def process_data(df, output_folder):
         # Remove mean from each epoch
         epochs_car = epochs_car.apply_function(lambda x: x - np.mean(x, axis=-1, keepdims=True))
 
-        # Normalize each segment individually for each channel
-        normalized_epochs = []
-        for seg_idx in range(n_segments):
-            normalized_segment = []
-            for ch in range(epochs_car.get_data().shape[1]):
-                normalized_channel = normalize_data(epochs_car.get_data()[seg_idx, ch])
-                normalized_segment.append(normalized_channel)
-            normalized_epochs.append(np.array(normalized_segment))
+        # Normalize each channel across all epochs
+       # Normalize the data for all channels after CAR and mean removal
+        normalized_data = np.array([normalize_data(epochs_car.get_data()[:, ch].flatten()) for ch in range(epochs_car.get_data().shape[1])])
 
-        # Convert normalized data back to original shape
-        normalized_data = np.array(normalized_epochs)
+        # Reshape normalized data back to original epochs structure
+        normalized_data = normalized_data.reshape(epochs_car.get_data().shape)
         
         # Store the cleaned and normalized epochs
         cleaned_epochs = mne.EpochsArray(normalized_data, info)

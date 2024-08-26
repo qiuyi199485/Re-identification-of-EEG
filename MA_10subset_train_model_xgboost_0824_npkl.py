@@ -54,9 +54,9 @@ dtest = xgb.DMatrix(test_X, label=test_y_encoded)
 
 # 固定的超参数
 fixed_params = {
-    'max_depth': 3,
+    'max_depth': 59,
     'learning_rate': 0.03661037033338074,
-    #'learning_rate': 0.03,
+    #'learning_rate': 0.02,
     'subsample': 0.67386985144832,
     'colsample_bytree': 0.8818101726706227,
     'objective': 'multi:softprob',
@@ -71,7 +71,7 @@ evals_result = {}
 bst = xgb.train(
     fixed_params, 
     dtrain, 
-    num_boost_round=938,  # 设置一个较大的值，用于手动观察收敛曲线
+    num_boost_round=300,  # 设置一个较大的值，用于手动观察收敛曲线
     evals=[(dval, 'validation')],
     evals_result=evals_result,
     verbose_eval=True
